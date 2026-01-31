@@ -11,6 +11,17 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
+/// @notice Minimal interface for Uniswap v4 PoolSwapHelper
+interface IPoolSwapHelper {
+    function executeSwap(
+        address token0,
+        address token1,
+        uint24 fee,
+        bool zeroForOne,
+        uint256 amountIn
+    ) external returns (uint256 amountOut);
+}
+
 /// @notice SafeAgentVault
 /// - 托管某个 ERC20 资产
 /// - 用户有自己的主余额 balances[user]
@@ -31,9 +42,18 @@ contract SafeAgentVault {
         uint256 maxNotionalPerTrade; // per-trade notional cap (in asset units)
     }
 
+    struct PoolRoute {
+        address token0;
+        address token1;
+        uint24 fee;
+        address poolAddress; // used for whitelist / matching agentConfigs.allowedPools
+    }
+
     address public owner;
     address public controller;
     IERC20 public immutable asset;
+    IPoolSwapHelper public poolSwapHelper; // Uniswap v4 integration
+    PoolRoute public defaultRoute; // default pool route for swaps
 
     uint256 private _locked;
 
@@ -69,6 +89,16 @@ contract SafeAgentVault {
         uint256 amountIn,
         uint256 minAmountOut
     );
+    event AgentSwapExecuted(
+        address indexed agent,
+        address indexed user,
+        address pool,
+        bool zeroForOne,
+        uint256 amountIn,
+        uint256 amountOut
+    );
+    event PoolSwapHelperUpdated(address indexed oldHelper, address indexed newHelper);
+    event DefaultRouteUpdated(address token0, address token1, uint24 fee, address poolAddress);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "not owner");
@@ -100,6 +130,34 @@ contract SafeAgentVault {
         address old = controller;
         controller = newController;
         emit ControllerUpdated(old, newController);
+    }
+
+    /// @notice owner 可以设置 Uniswap v4 PoolSwapHelper
+    function setPoolSwapHelper(address _poolSwapHelper) external onlyOwner {
+        address old = address(poolSwapHelper);
+        poolSwapHelper = IPoolSwapHelper(_poolSwapHelper);
+        emit PoolSwapHelperUpdated(old, _poolSwapHelper);
+    }
+
+    /// @notice owner 可以设置默认的 pool route
+    function setDefaultRoute(
+        address token0,
+        address token1,
+        uint24 fee,
+        address poolAddress
+    ) external onlyOwner {
+        require(token0 != address(0), "token0=0");
+        require(token1 != address(0), "token1=0");
+        require(poolAddress != address(0), "poolAddress=0");
+
+        defaultRoute = PoolRoute({
+            token0: token0,
+            token1: token1,
+            fee: fee,
+            poolAddress: poolAddress
+        });
+
+        emit DefaultRouteUpdated(token0, token1, fee, poolAddress);
     }
 
     /// @notice 用户把 token 存入 Vault，内部记在 balances[user]
@@ -225,32 +283,62 @@ contract SafeAgentVault {
         return false;
     }
 
-    /// @notice agent 发起 swap 请求（Phase 3: 仅风险检查 + 发出事件，不实际交易）
+    /// @notice agent 发起 swap 请求（Phase 4: 真实执行 swap）
+    /// @param user The user whose allocation should be used
+    /// @param pool The pool address (must match defaultRoute)
+    /// @param zeroForOne Swap direction
+    /// @param amountIn Amount to swap
+    /// @param minAmountOut Minimum output (slippage protection)
     function executeSwap(
+        address user,
         address pool,
         bool zeroForOne,
         uint256 amountIn,
         uint256 minAmountOut
-    ) external nonReentrant {
+    ) external nonReentrant returns (uint256 amountOut) {
         AgentConfig storage cfg = agentConfigs[msg.sender];
 
         // Basic config checks
         require(cfg.enabled, "agent disabled");
+        require(user != address(0), "user=0");
         require(pool != address(0), "pool=0");
         require(_isAllowedPool(cfg, pool), "pool not allowed");
         require(amountIn > 0, "amount=0");
         require(amountIn <= cfg.maxNotionalPerTrade, "trade too big");
 
-        // NOTE (Phase 3): we do NOT touch balances or Uniswap here.
-        // This is only the "risk shell" + intent layer.
+        // Check pool matches default route
+        require(pool == defaultRoute.poolAddress, "pool must match defaultRoute");
+        require(address(poolSwapHelper) != address(0), "poolSwapHelper not set");
 
-        emit AgentSwapPlanned(
+        // Check agent has sufficient balance from this user
+        require(agentBalances[user][msg.sender] >= amountIn, "insufficient agent balance");
+
+        // Deduct from agent balance
+        agentBalances[user][msg.sender] -= amountIn;
+        agentSpent[user][msg.sender] += amountIn;
+
+        // Approve poolSwapHelper to spend tokens
+        asset.approve(address(poolSwapHelper), amountIn);
+
+        // Execute swap through helper
+        amountOut = poolSwapHelper.executeSwap(
+            defaultRoute.token0,
+            defaultRoute.token1,
+            defaultRoute.fee,
+            zeroForOne,
+            amountIn
+        );
+
+        // Check slippage protection
+        require(amountOut >= minAmountOut, "slippage");
+
+        emit AgentSwapExecuted(
             msg.sender,
-            cfg.ensNode,
+            user,
             pool,
             zeroForOne,
             amountIn,
-            minAmountOut
+            amountOut
         );
     }
 }

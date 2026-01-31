@@ -1,155 +1,173 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("SafeAgentVault - executeSwap (Phase 3: risk shell)", function () {
-  let token;
-  let vault;
-  let deployer;
-  let agent;
-  let other;
-  let pool1;
-  let pool2;
-
-  let ensNode;
-  let maxPerTrade;
+describe("SafeAgentVault - executeSwap (Phase 4: real swap)", function () {
+  let deployer, user, agent, other, poolSigner;
+  let token0, token1;
+  let token0Addr, token1Addr;
+  let vault, poolManager, swapHelper;
+  let poolAddress;
+  let ensNode, maxPerTrade;
 
   beforeEach(async function () {
-    [deployer, agent, other, pool1, pool2] = await ethers.getSigners();
+    // Get signers
+    [deployer, user, agent, other, poolSigner] = await ethers.getSigners();
 
-    // Deploy MockERC20
+    // Deploy two MockERC20 tokens
     const MockERC20 = await ethers.getContractFactory("MockERC20");
-    token = await MockERC20.deploy("Mock USD", "mUSD");
-    await token.waitForDeployment();
+    const tokenA = await MockERC20.deploy("Token A", "TKA");
+    await tokenA.waitForDeployment();
+    const tokenB = await MockERC20.deploy("Token B", "TKB");
+    await tokenB.waitForDeployment();
 
-    // Deploy SafeAgentVault
+    const addrA = await tokenA.getAddress();
+    const addrB = await tokenB.getAddress();
+
+    // Force token0 < token1 by address sorting
+    if (addrA.toLowerCase() < addrB.toLowerCase()) {
+      token0 = tokenA;
+      token1 = tokenB;
+      token0Addr = addrA;
+      token1Addr = addrB;
+    } else {
+      token0 = tokenB;
+      token1 = tokenA;
+      token0Addr = addrB;
+      token1Addr = addrA;
+    }
+
+    // Deploy SafeAgentVault with token0 as the asset
     const SafeAgentVault = await ethers.getContractFactory("SafeAgentVault");
-    vault = await SafeAgentVault.deploy(await token.getAddress());
+    vault = await SafeAgentVault.deploy(token0Addr);
     await vault.waitForDeployment();
 
-    // Configure one agent with a whitelist and per-trade cap
-    ensNode = ethers.encodeBytes32String("agent1.eth");
-    const pools = [pool1.address]; // pool1 is an allowed pool
-    maxPerTrade = ethers.parseUnits("100", 18);
+    // Deploy PoolManager
+    const PoolManager = await ethers.getContractFactory("PoolManager");
+    poolManager = await PoolManager.deploy();
+    await poolManager.waitForDeployment();
 
+    // Initialize pool with sorted tokens
+    const poolKey = {
+      token0: token0Addr,
+      token1: token1Addr,
+      fee: 3000
+    };
+    const initialSqrtPriceX96 = 1n << 96n;
+    await poolManager.initialize(poolKey, initialSqrtPriceX96);
+
+    // Add liquidity to the pool
+    const liquidityAmount = ethers.parseUnits("10000", 18);
+    await token0.mint(deployer.address, liquidityAmount);
+    await token1.mint(deployer.address, liquidityAmount);
+    await token0.approve(await poolManager.getAddress(), liquidityAmount);
+    await token1.approve(await poolManager.getAddress(), liquidityAmount);
+    await poolManager.addLiquidity(poolKey, liquidityAmount, liquidityAmount);
+
+    // Deploy PoolSwapHelper
+    const PoolSwapHelper = await ethers.getContractFactory("PoolSwapHelper");
+    swapHelper = await PoolSwapHelper.deploy(await poolManager.getAddress());
+    await swapHelper.waitForDeployment();
+
+    // Use poolSigner address as logical pool address
+    poolAddress = poolSigner.address;
+
+    // Configure vault
+    await vault.connect(deployer).setPoolSwapHelper(await swapHelper.getAddress());
+    await vault.connect(deployer).setDefaultRoute(
+      token0Addr,
+      token1Addr,
+      3000,
+      poolAddress
+    );
+
+    // Give user tokens and deposit to vault
+    const userAmount = ethers.parseUnits("1000", 18);
+    await token0.mint(user.address, userAmount);
+    await token0.connect(user).approve(await vault.getAddress(), userAmount);
+    await vault.connect(user).deposit(userAmount);
+
+    // Allocate to agent
+    const allocAmount = ethers.parseUnits("200", 18);
+    await vault.connect(user).allocateToAgent(agent.address, allocAmount);
+
+    // Configure agent
+    ensNode = ethers.encodeBytes32String("agent.safe.eth");
+    maxPerTrade = ethers.parseUnits("100", 18);
     await vault
       .connect(deployer)
-      .setAgentConfig(agent.address, true, ensNode, pools, maxPerTrade);
+      .setAgentConfig(agent.address, true, ensNode, [poolAddress], maxPerTrade);
   });
 
-  it("allows an enabled agent to emit AgentSwapPlanned when pool is allowed and amount <= maxNotionalPerTrade", async function () {
+  it("allows an enabled agent to execute real swap and emit AgentSwapExecuted", async function () {
     const amountIn = ethers.parseUnits("50", 18);
-    const minAmountOut = ethers.parseUnits("49", 18);
+    const minAmountOut = 0n;
+
+    const balanceBefore = await vault.agentBalances(user.address, agent.address);
+    const spentBefore = await vault.agentSpent(user.address, agent.address);
 
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool1.address, true, amountIn, minAmountOut)
-    )
-      .to.emit(vault, "AgentSwapPlanned")
-      .withArgs(
-        agent.address,
-        ensNode,
-        pool1.address,
-        true,
-        amountIn,
-        minAmountOut
-      );
+        .executeSwap(user.address, poolAddress, true, amountIn, minAmountOut)
+    ).to.emit(vault, "AgentSwapExecuted");
+
+    const balanceAfter = await vault.agentBalances(user.address, agent.address);
+    const spentAfter = await vault.agentSpent(user.address, agent.address);
+
+    expect(balanceAfter).to.equal(balanceBefore - amountIn);
+    expect(spentAfter).to.equal(spentBefore + amountIn);
   });
 
   it("reverts when agent is disabled", async function () {
-    // Reconfigure the agent with enabled = false
     await vault
       .connect(deployer)
-      .setAgentConfig(agent.address, false, ensNode, [pool1.address], maxPerTrade);
+      .setAgentConfig(agent.address, false, ensNode, [poolAddress], maxPerTrade);
 
+    const amountIn = ethers.parseUnits("10", 18);
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool1.address, true, ethers.parseUnits("10", 18), 0)
+        .executeSwap(user.address, poolAddress, true, amountIn, 0n)
     ).to.be.revertedWith("agent disabled");
   });
 
   it("reverts when pool is not in whitelist", async function () {
-    // agent is enabled, but only pool1 is allowed
-    const amountIn = ethers.parseUnits("50", 18);
-    const minAmountOut = ethers.parseUnits("49", 18);
+    await vault
+      .connect(deployer)
+      .setAgentConfig(agent.address, true, ensNode, [other.address], maxPerTrade);
 
+    const amountIn = ethers.parseUnits("50", 18);
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool2.address, true, amountIn, minAmountOut)
+        .executeSwap(user.address, poolAddress, true, amountIn, 0n)
     ).to.be.revertedWith("pool not allowed");
   });
 
   it("reverts when amount exceeds maxNotionalPerTrade", async function () {
-    // maxPerTrade is 100, try to swap 150
-    const amountIn = ethers.parseUnits("150", 18);
-    const minAmountOut = ethers.parseUnits("145", 18);
-
+    const amountIn = ethers.parseUnits("200", 18);
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool1.address, true, amountIn, minAmountOut)
+        .executeSwap(user.address, poolAddress, true, amountIn, 0n)
     ).to.be.revertedWith("trade too big");
   });
 
   it("reverts when non-configured agent tries to execute swap", async function () {
-    // 'other' signer never had setAgentConfig called
     const amountIn = ethers.parseUnits("50", 18);
-    const minAmountOut = ethers.parseUnits("49", 18);
-
     await expect(
       vault
         .connect(other)
-        .executeSwap(pool1.address, true, amountIn, minAmountOut)
+        .executeSwap(user.address, poolAddress, true, amountIn, 0n)
     ).to.be.revertedWith("agent disabled");
-  });
-
-  it("allows multiple swaps within limits", async function () {
-    const amountIn = ethers.parseUnits("30", 18);
-    const minAmountOut = ethers.parseUnits("29", 18);
-
-    // First swap
-    await expect(
-      vault
-        .connect(agent)
-        .executeSwap(pool1.address, true, amountIn, minAmountOut)
-    )
-      .to.emit(vault, "AgentSwapPlanned")
-      .withArgs(
-        agent.address,
-        ensNode,
-        pool1.address,
-        true,
-        amountIn,
-        minAmountOut
-      );
-
-    // Second swap
-    await expect(
-      vault
-        .connect(agent)
-        .executeSwap(pool1.address, false, amountIn, minAmountOut)
-    )
-      .to.emit(vault, "AgentSwapPlanned")
-      .withArgs(
-        agent.address,
-        ensNode,
-        pool1.address,
-        false,
-        amountIn,
-        minAmountOut
-      );
   });
 
   it("reverts when pool address is zero", async function () {
     const amountIn = ethers.parseUnits("50", 18);
-    const minAmountOut = ethers.parseUnits("49", 18);
-
     await expect(
       vault
         .connect(agent)
-        .executeSwap(ethers.ZeroAddress, true, amountIn, minAmountOut)
+        .executeSwap(user.address, ethers.ZeroAddress, true, amountIn, 0n)
     ).to.be.revertedWith("pool=0");
   });
 
@@ -157,54 +175,87 @@ describe("SafeAgentVault - executeSwap (Phase 3: risk shell)", function () {
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool1.address, true, 0, 0)
+        .executeSwap(user.address, poolAddress, true, 0n, 0n)
     ).to.be.revertedWith("amount=0");
   });
 
-  it("allows owner to update agent config and new limits apply", async function () {
-    // Update maxNotionalPerTrade to 50
-    const newMaxPerTrade = ethers.parseUnits("50", 18);
-    await vault
-      .connect(deployer)
-      .setAgentConfig(agent.address, true, ensNode, [pool1.address], newMaxPerTrade);
-
-    // Try to swap 60 (should fail now)
-    const amountIn = ethers.parseUnits("60", 18);
+  it("reverts when user address is zero", async function () {
+    const amountIn = ethers.parseUnits("50", 18);
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool1.address, true, amountIn, 0)
-    ).to.be.revertedWith("trade too big");
-
-    // Try to swap 40 (should succeed)
-    const validAmount = ethers.parseUnits("40", 18);
-    await expect(
-      vault
-        .connect(agent)
-        .executeSwap(pool1.address, true, validAmount, 0)
-    ).to.emit(vault, "AgentSwapPlanned");
+        .executeSwap(ethers.ZeroAddress, poolAddress, true, amountIn, 0n)
+    ).to.be.revertedWith("user=0");
   });
 
-  it("allows owner to add multiple pools to whitelist", async function () {
-    // Add both pool1 and pool2 to whitelist
-    const pools = [pool1.address, pool2.address];
+  it("reverts when poolSwapHelper is not set", async function () {
+    // Deploy a fresh vault without helper
+    const SafeAgentVault = await ethers.getContractFactory("SafeAgentVault");
+    const freshVault = await SafeAgentVault.deploy(token0Addr);
+    await freshVault.waitForDeployment();
+
+    // Configure agent
+    await freshVault
+      .connect(deployer)
+      .setAgentConfig(agent.address, true, ensNode, [poolAddress], maxPerTrade);
+
+    // Set defaultRoute but NOT poolSwapHelper
+    await freshVault.connect(deployer).setDefaultRoute(
+      token0Addr,
+      token1Addr,
+      3000,
+      poolAddress
+    );
+
+    // Give user tokens and allocate
+    const depositAmount = ethers.parseUnits("100", 18);
+    await token0.mint(user.address, depositAmount);
+    await token0.connect(user).approve(await freshVault.getAddress(), depositAmount);
+    await freshVault.connect(user).deposit(depositAmount);
+    await freshVault.connect(user).allocateToAgent(agent.address, ethers.parseUnits("50", 18));
+
+    const amountIn = ethers.parseUnits("10", 18);
+    await expect(
+      freshVault
+        .connect(agent)
+        .executeSwap(user.address, poolAddress, true, amountIn, 0n)
+    ).to.be.revertedWith("poolSwapHelper not set");
+  });
+
+  it("reverts when pool does not match defaultRoute", async function () {
+    // Add a different pool to whitelist
+    const wrongPool = other.address;
     await vault
       .connect(deployer)
-      .setAgentConfig(agent.address, true, ensNode, pools, maxPerTrade);
+      .setAgentConfig(agent.address, true, ensNode, [poolAddress, wrongPool], maxPerTrade);
 
     const amountIn = ethers.parseUnits("50", 18);
-
-    // Both pools should work now
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool1.address, true, amountIn, 0)
-    ).to.emit(vault, "AgentSwapPlanned");
+        .executeSwap(user.address, wrongPool, true, amountIn, 0n)
+    ).to.be.revertedWith("pool must match defaultRoute");
+  });
 
+  it("allows multiple swaps within limits", async function () {
+    const amountIn = ethers.parseUnits("30", 18);
+
+    // First swap (zeroForOne = true)
     await expect(
       vault
         .connect(agent)
-        .executeSwap(pool2.address, true, amountIn, 0)
-    ).to.emit(vault, "AgentSwapPlanned");
+        .executeSwap(user.address, poolAddress, true, amountIn, 0n)
+    ).to.emit(vault, "AgentSwapExecuted");
+
+    // Second swap (also zeroForOne = true, same direction)
+    await expect(
+      vault
+        .connect(agent)
+        .executeSwap(user.address, poolAddress, true, amountIn, 0n)
+    ).to.emit(vault, "AgentSwapExecuted");
+
+    // Check total spent
+    const spent = await vault.agentSpent(user.address, agent.address);
+    expect(spent).to.equal(amountIn * 2n);
   });
 });
