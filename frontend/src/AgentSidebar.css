@@ -1,0 +1,522 @@
+/**
+ * AgentSidebar.css
+ *
+ * Cyberpunk/Neon styling for agent sidebar
+ * - Black background with pink/neon borders
+ * - Hover and selection effects
+ * - Status indicators
+ */
+
+.agent-sidebar {
+  background: rgba(13, 13, 13, 0.95);
+  border: 2px solid #ff4ec9;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 0 20px rgba(255, 78, 201, 0.3), inset 0 0 30px rgba(255, 78, 201, 0.05);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Header */
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 2px solid rgba(255, 78, 201, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 78, 201, 0.05);
+}
+
+.sidebar-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #ff4ec9;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255, 78, 201, 0.8);
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.sidebar-subtitle {
+  font-size: 11px;
+  color: #00d4ff;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.agent-count {
+  background: rgba(0, 255, 153, 0.15);
+  border: 2px solid #00ff99;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
+}
+
+/* Agent List */
+.agent-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.agent-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.agent-list::-webkit-scrollbar-track {
+  background: rgba(255, 78, 201, 0.05);
+}
+
+.agent-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 78, 201, 0.3);
+  border-radius: 4px;
+}
+
+.agent-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 78, 201, 0.5);
+}
+
+/* Agent Item */
+.agent-item {
+  background: rgba(13, 13, 13, 0.8);
+  border: 2px solid rgba(255, 78, 201, 0.3);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.agent-item:hover {
+  border-color: #ff4ec9;
+  background: rgba(255, 78, 201, 0.08);
+  box-shadow: 0 0 15px rgba(255, 78, 201, 0.4);
+  transform: translateX(4px);
+}
+
+.agent-item.selected {
+  border-color: #00ff99;
+  background: rgba(0, 255, 153, 0.1);
+  box-shadow: 0 0 20px rgba(0, 255, 153, 0.5);
+}
+
+.agent-item.selected:hover {
+  border-color: #00ff99;
+  background: rgba(0, 255, 153, 0.15);
+}
+
+.agent-item.disabled {
+  opacity: 0.7;
+  background: rgba(50, 13, 13, 0.6);
+  border-color: rgba(255, 51, 102, 0.4);
+}
+
+.agent-item.disabled:hover {
+  border-color: rgba(255, 51, 102, 0.6);
+  background: rgba(50, 13, 13, 0.8);
+  box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
+}
+
+.agent-item.disabled .agent-ens {
+  color: #ff3366;
+  text-shadow: 0 0 8px rgba(255, 51, 102, 0.5);
+}
+
+.agent-item.disabled .agent-address {
+  color: #666;
+}
+
+/* Agent Item Header */
+.agent-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.agent-ens {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff4ec9;
+  text-shadow: 0 0 8px rgba(255, 78, 201, 0.6);
+}
+
+.agent-item.selected .agent-ens {
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
+}
+
+.agent-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.agent-status-dot.enabled {
+  background: #00ff99;
+  box-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
+}
+
+.agent-status-dot.disabled {
+  background: #ff4ec9;
+  box-shadow: 0 0 8px rgba(255, 78, 201, 0.6);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+/* Agent Address */
+.agent-address {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+/* Agent Meta */
+.agent-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agent-strategy {
+  display: inline-block;
+  padding: 3px 8px;
+  background: rgba(0, 255, 153, 0.1);
+  border: 1px solid rgba(0, 255, 153, 0.3);
+  border-radius: 10px;
+  font-size: 10px;
+  color: #00ff99;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agent-item.selected .agent-strategy {
+  background: rgba(0, 255, 153, 0.2);
+  border-color: #00ff99;
+}
+
+.agent-label {
+  font-size: 10px;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Loading State */
+.sidebar-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #ff4ec9;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 78, 201, 0.2);
+  border-top-color: #ff4ec9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.sidebar-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #ff4ec9;
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
+}
+
+.sidebar-empty .hint {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* Footer */
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 2px solid rgba(255, 78, 201, 0.3);
+  background: rgba(255, 78, 201, 0.05);
+}
+
+.footer-hint {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .agent-sidebar {
+    height: auto;
+    max-height: 300px;
+  }
+
+  .agent-list {
+    max-height: 200px;
+  }
+}
+
+/* ========== 新增样式：Runtime 状态指示器 ========== */
+
+.agent-item {
+  position: relative;
+}
+
+.runtime-status-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  z-index: 10;
+}
+
+.runtime-status-indicator.online {
+  background: #00ff99;
+  animation: pulse-online 2s infinite;
+}
+
+.runtime-status-indicator.offline {
+  background: #666;
+}
+
+.runtime-status-indicator.error {
+  background: #ff4ec9;
+  animation: blink-error 1s infinite;
+}
+
+.runtime-status-indicator.warning {
+  background: #ffaa00;
+  animation: pulse-online 1.5s infinite;
+}
+
+.runtime-status-indicator.unknown {
+  background: #666;
+  opacity: 0.5;
+}
+
+@keyframes pulse-online {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes blink-error {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+/* 风险等级指示器 */
+.risk-indicator {
+  position: absolute;
+  top: 12px;
+  right: 28px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.risk-indicator.low {
+  background: #00ff99;
+  box-shadow: 0 0 6px rgba(0, 255, 153, 0.6);
+}
+
+.risk-indicator.medium {
+  background: #ffaa00;
+  box-shadow: 0 0 6px rgba(255, 170, 0, 0.6);
+}
+
+.risk-indicator.high {
+  background: #ff4ec9;
+  box-shadow: 0 0 6px rgba(255, 78, 201, 0.6);
+}
+
+/* 更新 agent-item-header 以支持新布局 */
+.agent-item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.agent-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.agent-info {
+  flex: 1;
+}
+
+.agent-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff4ec9;
+  text-shadow: 0 0 8px rgba(255, 78, 201, 0.6);
+  margin-bottom: 4px;
+}
+
+.agent-item.selected .agent-name {
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
+}
+
+.agent-ens {
+  font-size: 11px;
+  color: #00B4D8;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s ease;
+}
+
+.agent-ens:hover {
+  color: #00d4ff;
+  text-decoration: underline;
+}
+
+/* 策略徽章样式更新 */
+.strategy-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+
+.version-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  background: rgba(255, 78, 201, 0.1);
+  color: #888;
+  border: 1px solid rgba(255, 78, 201, 0.2);
+}
+
+/* Tags 样式 */
+.agent-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.agent-tags .tag {
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  background: rgba(0, 255, 153, 0.1);
+  color: #00ff99;
+  border: 1px solid rgba(0, 255, 153, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* 支持 inactive 状态 */
+.agent-item.inactive {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+}
+
+.agent-item.inactive:hover {
+  opacity: 0.7;
+}
+
+/* Agent Config Row */
+.agent-config-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.enabled-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+
+.enabled-badge.enabled {
+  background: rgba(0, 255, 153, 0.15);
+  border-color: #00ff99;
+  color: #00ff99;
+  text-shadow: 0 0 6px rgba(0, 255, 153, 0.6);
+}
+
+.enabled-badge.disabled {
+  background: rgba(255, 78, 201, 0.15);
+  border-color: #ff4ec9;
+  color: #ff4ec9;
+  text-shadow: 0 0 6px rgba(255, 78, 201, 0.6);
+}
+
+.cap-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid #ffa500;
+  color: #ffa500;
+}

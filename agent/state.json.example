@@ -1,0 +1,70 @@
+{
+  "agent": {
+    "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    "ensName": "agent.safe.eth",
+    "label": "Primary Trading Agent",
+    "strategy": "market-maker"
+  },
+  "status": "running",
+  "loop_count": 42,
+  "total_trades": 5,
+  "last_update": "2026-02-02T16:30:45.123456",
+  "last_trade_time": "2026-02-02T16:28:12.456789",
+  "snapshot": {
+    "block_number": 1234,
+    "timestamp": 1738512645,
+    "user_balance": "800000000000000000000",
+    "agent_sub_balance": "150000000000000000000",
+    "agent_spent": "50000000000000000000",
+    "agent_config": {
+      "enabled": true,
+      "ensNode": "0xb63b9b1059d24728ed3b9137294aff0bbce3c9f966e29325dfd58b37511eb834",
+      "maxNotionalPerTrade": "100000000000000000000"
+    },
+    "default_route_id": "0x46fcae8228bf81035765c1a020e21c67eff7bd6dbdf58779d19588907eb80683",
+    "default_route": {
+      "token0": "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+      "token1": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+      "fee": 3000,
+      "pool": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "enabled": true
+    }
+  },
+  "decision": {
+    "action": "TRADE",
+    "reason": "满足所有交易条件",
+    "amount_in": "37500000000000000000",
+    "min_amount_out": "36750000000000000000"
+  },
+  "last_trade": {
+    "tx_hash": "0x320706ec0cdc62479bb152593644865b72a640e69dea0945c167703ebd539d8f",
+    "block_number": 1234,
+    "gas_used": 225637,
+    "event": {
+      "agent": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "user": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "ensNode": "0xb63b9b1059d24728ed3b9137294aff0bbce3c9f966e29325dfd58b37511eb834",
+      "routeId": "0x46fcae8228bf81035765c1a020e21c67eff7bd6dbdf58779d19588907eb80683",
+      "pool": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "zeroForOne": true,
+      "amountIn": 37500000000000000000,
+      "amountOut": 37102730389010781255,
+      "blockNumber": 1234,
+      "transactionHash": "0x320706ec0cdc62479bb152593644865b72a640e69dea0945c167703ebd539d8f"
+    },
+    "timestamp": "2026-02-02T16:28:12.456789"
+  },
+  "last_error": null,
+  "_comments": {
+    "agent": "Agent 基本信息",
+    "status": "运行状态 (running/stopped/error)",
+    "loop_count": "循环执行次数",
+    "total_trades": "总交易次数",
+    "last_update": "最后更新时间 (ISO 8601)",
+    "last_trade_time": "最后交易时间 (ISO 8601)",
+    "snapshot": "链上状态快照",
+    "decision": "策略决策结果",
+    "last_trade": "最后一笔交易详情",
+    "last_error": "最后一次错误信息"
+  }
+}

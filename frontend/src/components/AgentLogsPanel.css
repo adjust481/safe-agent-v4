@@ -1,0 +1,262 @@
+/* AgentLogsPanel.css */
+
+.logs-panel-container {
+  background: #111;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.logs-header {
+  padding: 16px 20px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #1f1f1f;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.logs-header:hover {
+  background: #222;
+}
+
+.logs-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.logs-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.log-count {
+  font-size: 12px;
+  color: #6b7280;
+  background: #1f1f1f;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s ease;
+}
+
+.expand-btn:hover {
+  color: #fff;
+}
+
+.logs-content {
+  padding: 16px;
+}
+
+.logs-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.clear-btn {
+  padding: 6px 14px;
+  background: #1f1f1f;
+  border: 1px solid #2f2f2f;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.clear-btn:hover {
+  background: #2a2a2a;
+  border-color: #3f3f3f;
+  color: #fff;
+}
+
+.logs-hint {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.logs-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.logs-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.logs-list::-webkit-scrollbar-track {
+  background: #1f1f1f;
+  border-radius: 3px;
+}
+
+.logs-list::-webkit-scrollbar-thumb {
+  background: #3f3f3f;
+  border-radius: 3px;
+}
+
+.logs-list::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+
+.log-entry {
+  background: #0a0a0a;
+  border: 1px solid #1f1f1f;
+  border-left: 3px solid #666;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.log-entry:hover {
+  background: #111;
+  border-color: #2f2f2f;
+}
+
+.log-entry.info {
+  border-left-color: #00ff99;
+}
+
+.log-entry.warn {
+  border-left-color: #ffaa00;
+}
+
+.log-entry.error {
+  border-left-color: #ff4ec9;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.log-icon {
+  font-size: 14px;
+}
+
+.log-level {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.log-time {
+  font-size: 11px;
+  color: #6b7280;
+  font-family: 'Courier New', monospace;
+  margin-left: auto;
+}
+
+.log-message {
+  font-size: 13px;
+  color: #e5e7eb;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Empty State */
+.logs-empty {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.logs-empty .empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.logs-empty .empty-text {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Logs Preview (Collapsed State) */
+.logs-preview {
+  padding: 12px 16px;
+  background: #0a0a0a;
+  border-top: 1px solid #1f1f1f;
+}
+
+.log-entry-compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #0a0a0a;
+  border: 1px solid #1f1f1f;
+  border-left: 3px solid #666;
+  border-radius: 6px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.log-entry-compact:hover {
+  background: #111;
+  border-color: #2f2f2f;
+}
+
+.log-entry-compact.info {
+  border-left-color: #00ff99;
+}
+
+.log-entry-compact.warn {
+  border-left-color: #ffaa00;
+}
+
+.log-entry-compact.error {
+  border-left-color: #ff4ec9;
+}
+
+.log-time-compact {
+  font-size: 11px;
+  color: #6b7280;
+  font-family: 'Courier New', monospace;
+  min-width: 60px;
+}
+
+.log-message-compact {
+  flex: 1;
+  color: #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .logs-list {
+    max-height: 300px;
+  }
+
+  .logs-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

@@ -32,20 +32,30 @@ async function main() {
   // ========== 步骤 2：部署 MockERC20 ==========
   console.log("Step 2: Deploying MockERC20 tokens...");
   const MockERC20 = await ethers.getContractFactory("MockERC20");
-  const token = await MockERC20.deploy("Mock USD", "mUSD");
-  await token.waitForDeployment();
-  const tokenAddress = await token.getAddress();
+  const tokenA = await MockERC20.deploy("Mock USD", "mUSD");
+  await tokenA.waitForDeployment();
+  const tokenAAddress = await tokenA.getAddress();
 
-  const token1 = await MockERC20.deploy("Mock USDC", "mUSDC");
-  await token1.waitForDeployment();
-  const token1Address = await token1.getAddress();
+  const tokenB = await MockERC20.deploy("Mock USDC", "mUSDC");
+  await tokenB.waitForDeployment();
+  const tokenBAddress = await tokenB.getAddress();
 
   // Ensure token0 < token1 for PoolManager
-  const token0Addr = tokenAddress < token1Address ? tokenAddress : token1Address;
-  const token1Addr = tokenAddress < token1Address ? token1Address : tokenAddress;
+  let token, token0Addr, token1, token1Addr;
+  if (tokenAAddress.toLowerCase() < tokenBAddress.toLowerCase()) {
+    token = tokenA;
+    token0Addr = tokenAAddress;
+    token1 = tokenB;
+    token1Addr = tokenBAddress;
+  } else {
+    token = tokenB;
+    token0Addr = tokenBAddress;
+    token1 = tokenA;
+    token1Addr = tokenAAddress;
+  }
 
-  console.log("  MockERC20 (mUSD) deployed at:", tokenAddress);
-  console.log("  MockERC20 (mUSDC) deployed at:", token1Address);
+  console.log("  MockERC20 (mUSD) deployed at:", tokenAAddress);
+  console.log("  MockERC20 (mUSDC) deployed at:", tokenBAddress);
   console.log("  Using token0:", token0Addr);
   console.log("  Using token1:", token1Addr);
   console.log();
@@ -53,7 +63,7 @@ async function main() {
   // ========== 步骤 3：部署 SafeAgentVault ==========
   console.log("Step 3: Deploying SafeAgentVault...");
   const SafeAgentVault = await ethers.getContractFactory("SafeAgentVault");
-  const vault = await SafeAgentVault.deploy(tokenAddress);
+  const vault = await SafeAgentVault.deploy(token0Addr);
   await vault.waitForDeployment();
   const vaultAddress = await vault.getAddress();
 
@@ -73,7 +83,11 @@ async function main() {
   // ========== 步骤 5：部署 PoolSwapHelper ==========
   console.log("Step 5: Deploying PoolSwapHelper...");
   const PoolSwapHelper = await ethers.getContractFactory("PoolSwapHelper");
-  const swapHelper = await PoolSwapHelper.deploy(poolManagerAddress);
+  const swapHelper = await PoolSwapHelper.deploy(
+    poolManagerAddress,
+    token0Addr,
+    token1Addr
+  );
   await swapHelper.waitForDeployment();
   const swapHelperAddress = await swapHelper.getAddress();
 
@@ -157,9 +171,13 @@ async function main() {
 
   // ========== 步骤 9：配置 Agent（setAgentConfig）==========
   console.log("Step 9: Configuring agent via setAgentConfig...");
-  const ensNode = ethers.encodeBytes32String("agent.safe.eth");
-  const allowedPools = [poolAddress];
+  const ensName = "agent.safe.eth";
+  const ensNode = ethers.namehash(ensName);
   const maxNotionalPerTrade = ethers.parseUnits("100", 18);
+
+  // Compute routeId for Phase 5
+  const routeId = await vault.computeRouteId(token0Addr, token1Addr, 3000, poolAddress);
+  const allowedRoutes = [routeId];
 
   await vault
     .connect(deployer)
@@ -167,7 +185,7 @@ async function main() {
       agent.address,
       true,
       ensNode,
-      allowedPools,
+      allowedRoutes,
       maxNotionalPerTrade
     );
 
@@ -179,7 +197,7 @@ async function main() {
     ethers.formatUnits(agentConfig.maxNotionalPerTrade, 18),
     "mUSD"
   );
-  console.log("    allowedPools         :", agentConfig.allowedPools);
+  console.log("    allowedRoutes        :", agentConfig.allowedRoutes);
   console.log();
 
   // ========== 步骤 10：用户分配余额给 Agent 子账户 ==========
@@ -223,7 +241,7 @@ async function main() {
 
   const tx = await vault
     .connect(agent)
-    .executeSwap(user.address, poolAddress, true, amountIn, minOut);
+    .executeSwap(user.address, routeId, true, amountIn, minOut);
   const receipt = await tx.wait();
 
   console.log("\n  executeSwap tx hash:", receipt.hash);
@@ -244,6 +262,8 @@ async function main() {
     console.log("\n  AgentSwapExecuted event:");
     console.log("    agent      :", parsed.args.agent);
     console.log("    user       :", parsed.args.user);
+    console.log("    ensNode    :", parsed.args.ensNode);
+    console.log("    routeId    :", parsed.args.routeId);
     console.log("    pool       :", parsed.args.pool);
     console.log("    zeroForOne :", parsed.args.zeroForOne);
     console.log("    amountIn   :", ethers.formatUnits(parsed.args.amountIn, 18), "mUSD");
@@ -269,6 +289,53 @@ async function main() {
   console.log();
 
   console.log("=== Demo completed successfully! ===");
+
+  // ========== 落盘部署信息 ==========
+  console.log("\nStep 12: Writing deployment info to deployments/localhost.json...");
+  const fs = require("fs");
+  const path = require("path");
+
+  const deploymentsDir = path.join(__dirname, "..", "deployments");
+  fs.mkdirSync(deploymentsDir, { recursive: true });
+
+  const network = await ethers.provider.getNetwork();
+  const deploymentInfo = {
+    network: "localhost",
+    chainId: Number(network.chainId),
+    rpcUrl: "http://127.0.0.1:8545",
+    ensName: ensName,
+    addresses: {
+      token0: token0Addr,
+      token1: token1Addr,
+      vault: vaultAddress,
+      poolManager: poolManagerAddress,
+      poolSwapHelper: swapHelperAddress,
+      poolAddress: poolAddress
+    },
+    actors: {
+      user: user.address,
+      agent: agent.address,
+      deployer: deployer.address
+    }
+  };
+
+  const deploymentPath = path.join(deploymentsDir, "localhost.json");
+  fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2));
+  console.log("  Deployment info written to:", deploymentPath);
+
+  // 写入私钥信息（仅用于本地测试）
+  const keysInfo = {
+    warning: "DO NOT COMMIT THIS FILE - FOR LOCAL TESTING ONLY",
+    deployerPrivateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // hardhat account #0
+    userPrivateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",   // hardhat account #1
+    agentPrivateKey: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"  // hardhat account #2
+  };
+
+  const keysPath = path.join(deploymentsDir, "keys.local.json");
+  fs.writeFileSync(keysPath, JSON.stringify(keysInfo, null, 2));
+  console.log("  Keys info written to:", keysPath);
+  console.log("  ⚠️  Remember: keys.local.json is gitignored for security");
+  console.log();
 }
 
 main().catch((error) => {

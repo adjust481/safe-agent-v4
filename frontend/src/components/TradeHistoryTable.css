@@ -1,0 +1,252 @@
+/* TradeHistoryTable.css */
+
+.trade-history-container {
+  background: #111;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 20px;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.table-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.trade-count {
+  background: #1f1f1f;
+  color: #9ca3af;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.trade-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.trade-table thead {
+  background: #1a1a1a;
+  border-bottom: 2px solid #2f2f2f;
+}
+
+.trade-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.trade-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.trade-table th.sortable:hover {
+  color: #fff;
+}
+
+.trade-table tbody tr {
+  border-bottom: 1px solid #1f1f1f;
+  transition: background 0.2s ease;
+}
+
+.trade-table tbody tr:hover {
+  background: #1a1a1a;
+}
+
+.trade-table td {
+  padding: 14px 16px;
+  color: #e5e7eb;
+}
+
+.time-cell {
+  font-family: 'Courier New', monospace;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.pair-cell {
+  font-weight: 600;
+}
+
+.token-pair {
+  color: #fff;
+}
+
+.direction-cell {
+  text-align: center;
+}
+
+.direction-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.direction-badge.buy {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.direction-badge.sell {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.amount-cell {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  color: #e5e7eb;
+}
+
+.pnl-cell {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.pnl-cell.positive {
+  color: #10b981;
+}
+
+.pnl-cell.negative {
+  color: #ef4444;
+}
+
+.gas-cell {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.tx-cell {
+  text-align: center;
+}
+
+.tx-link {
+  color: #00B4D8;
+  text-decoration: none;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  transition: color 0.2s ease;
+}
+
+.tx-link:hover {
+  color: #00d4ff;
+  text-decoration: underline;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #1f1f1f;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background: #1a1a1a;
+  border: 1px solid #2f2f2f;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #222;
+  border-color: #3f3f3f;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* Empty State */
+.trade-history-empty {
+  background: #111;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  padding: 60px 24px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.trade-history-empty .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.trade-history-empty .empty-text {
+  font-size: 16px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.trade-history-empty .empty-hint {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .trade-table {
+    font-size: 12px;
+  }
+
+  .trade-table th,
+  .trade-table td {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-wrapper {
+    overflow-x: scroll;
+  }
+
+  .trade-table {
+    min-width: 800px;
+  }
+}

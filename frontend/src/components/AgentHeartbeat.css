@@ -1,0 +1,120 @@
+/* AgentHeartbeat.css */
+
+.heartbeat-container {
+  background: #111;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  padding: 24px;
+  height: 100%;
+}
+
+.heartbeat-header {
+  margin-bottom: 20px;
+}
+
+.heartbeat-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.heartbeat-status {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.heartbeat-indicator {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px currentColor;
+}
+
+.heartbeat-indicator.online .heartbeat-pulse,
+.heartbeat-indicator.warning .heartbeat-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.heartbeat-info {
+  flex: 1;
+}
+
+.heartbeat-label {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heartbeat-time {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.heartbeat-details {
+  border-top: 1px solid #1f1f1f;
+  padding-top: 16px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.detail-row.error {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.detail-value {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.detail-row.error .detail-value {
+  color: #ef4444;
+  font-size: 12px;
+  word-break: break-word;
+}

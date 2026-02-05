@@ -5,47 +5,46 @@ import "./PoolManager.sol";
 import "../mocks/MockERC20.sol";
 
 /// @notice Helper contract for executing swaps through PoolManager
-/// @dev Provides a simplified interface for SafeAgentVault to interact with v4
+/// @dev Simplified version that pulls tokens first, then swaps
 contract PoolSwapHelper {
     PoolManager public immutable poolManager;
+    MockERC20 public immutable token0;
+    MockERC20 public immutable token1;
 
-    constructor(address _poolManager) {
+    constructor(address _poolManager, address _token0, address _token1) {
         require(_poolManager != address(0), "poolManager = 0");
+        require(_token0 != address(0), "token0 = 0");
+        require(_token1 != address(0), "token1 = 0");
+        require(_token0 < _token1, "token0 >= token1");
+
         poolManager = PoolManager(_poolManager);
+        token0 = MockERC20(_token0);
+        token1 = MockERC20(_token1);
     }
 
-    /// @notice Execute a simple swap
-    /// @param token0 First token in the pair (must be < token1)
-    /// @param token1 Second token in the pair
-    /// @param fee Pool fee tier
-    /// @param zeroForOne Direction of swap
+    /// @notice Execute a swap
+    /// @param key Pool key containing token addresses and fee
+    /// @param zeroForOne Direction of swap (true = token0 -> token1)
     /// @param amountIn Amount of input token
     /// @return amountOut Amount of output token received
-    function executeSwap(
-        address token0,
-        address token1,
-        uint24 fee,
+    function swap(
+        PoolManager.PoolKey memory key,
         bool zeroForOne,
         uint256 amountIn
     ) external returns (uint256 amountOut) {
         require(amountIn > 0, "amountIn = 0");
+        require(key.token0 == address(token0), "invalid token0");
+        require(key.token1 == address(token1), "invalid token1");
 
         // Determine input and output tokens
-        address tokenIn = zeroForOne ? token0 : token1;
-        address tokenOut = zeroForOne ? token1 : token0;
+        MockERC20 tokenIn = zeroForOne ? token0 : token1;
+        MockERC20 tokenOut = zeroForOne ? token1 : token0;
 
-        // Pull input tokens from caller (Vault)
-        MockERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        // Pull input tokens from caller (Vault) to this contract
+        tokenIn.transferFrom(msg.sender, address(this), amountIn);
 
         // Approve PoolManager to spend input tokens
-        MockERC20(tokenIn).approve(address(poolManager), amountIn);
-
-        // Create pool key
-        PoolManager.PoolKey memory key = PoolManager.PoolKey({
-            token0: token0,
-            token1: token1,
-            fee: fee
-        });
+        tokenIn.approve(address(poolManager), amountIn);
 
         // Create swap params
         PoolManager.SwapParams memory params = PoolManager.SwapParams({
@@ -55,30 +54,19 @@ contract PoolSwapHelper {
         });
 
         // Execute swap
-        (int256 amount0, int256 amount1) = poolManager.swap(key, params, "");
+        (int256 delta0, int256 delta1) = poolManager.swap(key, params, "");
 
-        // Calculate output amount (negative value indicates output)
-        if (zeroForOne) {
-            amountOut = uint256(-amount1);
-        } else {
-            amountOut = uint256(-amount0);
-        }
+        // Calculate output amount (negative delta indicates tokens received)
+        amountOut = uint256(zeroForOne ? -delta1 : -delta0);
 
-        // Transfer output tokens back to caller
-        MockERC20(tokenOut).transfer(msg.sender, amountOut);
+        // Transfer output tokens back to caller (Vault)
+        tokenOut.transfer(msg.sender, amountOut);
     }
 
     /// @notice Get pool information
     function getPoolInfo(
-        address token0,
-        address token1,
-        uint24 fee
+        PoolManager.PoolKey memory key
     ) external view returns (PoolManager.Pool memory) {
-        PoolManager.PoolKey memory key = PoolManager.PoolKey({
-            token0: token0,
-            token1: token1,
-            fee: fee
-        });
         return poolManager.getPool(key);
     }
 }

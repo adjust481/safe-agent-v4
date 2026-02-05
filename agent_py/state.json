@@ -1,0 +1,55 @@
+{
+  "status": "running",
+  "last_update": "2026-02-05T18:13:29.464342Z",
+  "loop_count": 661,
+  "total_trades": 567,
+  "agent": {
+    "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    "ensName": "agent.safe.eth",
+    "strategy": "sniper",
+    "enabled": true,
+    "cap": "100"
+  },
+  "decision": {
+    "action": "SWAP",
+    "reason": "sniper:snipe_at_0.9990"
+  },
+  "snapshot": {
+    "agent_sub_balance": "150000000000000000000",
+    "agent_spent": "50000000000000000000",
+    "vault_balance": "950000000000000000000"
+  },
+  "intent": {
+    "action": "SWAP",
+    "reason": "sniper:snipe_at_0.9990",
+    "zeroForOne": true,
+    "amountIn": "100000000000000000000",
+    "minOut": "99500000000000000000",
+    "meta": {
+      "order": {
+        "reason": "snipe_at_0.9990",
+        "target": 1.0,
+        "spread": 0.0010000000000000009
+      },
+      "signal": {
+        "best_bid": 0.998,
+        "best_ask": 0.999,
+        "spread": 0.001,
+        "timestamp": "2026-02-04T22:30:00Z",
+        "source": "manual"
+      },
+      "side": "BUY",
+      "price": 0.999
+    }
+  },
+  "last_trade": {
+    "tx_hash": null,
+    "block_number": null,
+    "gas_used": null,
+    "timestamp": "2026-02-05T18:13:29.464342Z",
+    "event": {
+      "amountIn": "100000000000000000000",
+      "amountOut": "99500000000000000000"
+    }
+  }
+}

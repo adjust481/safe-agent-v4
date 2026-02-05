@@ -1,0 +1,157 @@
+/* Pending Approval Card */
+.pending-approval-card {
+  margin: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255, 165, 0, 0.15) 0%, rgba(255, 69, 0, 0.15) 100%);
+  border: 3px solid #ffa500;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(255, 165, 0, 0.5), inset 0 0 20px rgba(255, 165, 0, 0.1);
+  animation: pending-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pending-pulse {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(255, 165, 0, 0.5), inset 0 0 20px rgba(255, 165, 0, 0.1);
+    border-color: #ffa500;
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 165, 0, 0.7), inset 0 0 25px rgba(255, 165, 0, 0.15);
+    border-color: #ff8c00;
+  }
+}
+
+.pending-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(255, 165, 0, 0.3);
+}
+
+.pending-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.8));
+  animation: icon-bounce 1s ease-in-out infinite;
+}
+
+@keyframes icon-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.pending-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffa500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(255, 165, 0, 0.8);
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.pending-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.pending-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 165, 0, 0.2);
+}
+
+.pending-label {
+  font-size: 13px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.pending-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  color: #fff;
+}
+
+.pending-value.agent-address {
+  color: #ff4ec9;
+  text-shadow: 0 0 8px rgba(255, 78, 201, 0.6);
+}
+
+.pending-value.strategy-name {
+  color: #00d4ff;
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.pending-value.amount-value {
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.6);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pending-value.direction-value {
+  color: #ffaa00;
+  font-size: 13px;
+}
+
+.approve-button {
+  width: 100%;
+  padding: 16px;
+  margin-top: 10px;
+  background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+  border: 2px solid #ffaa00;
+  border-radius: 8px;
+  color: #000;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  box-shadow: 0 0 20px rgba(255, 165, 0, 0.4);
+}
+
+.approve-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff8c00 0%, #ff7700 100%);
+  box-shadow: 0 0 30px rgba(255, 165, 0, 0.6);
+  transform: translateY(-2px);
+}
+
+.approve-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 0 15px rgba(255, 165, 0, 0.4);
+}
+
+.approve-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pending-warning {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(255, 51, 102, 0.1);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+  border-radius: 6px;
+  color: #ff3366;
+  font-size: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}

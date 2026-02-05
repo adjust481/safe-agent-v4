@@ -1,0 +1,50 @@
+{
+  "network": "localhost",
+  "chainId": 31337,
+  "rpcUrl": "http://127.0.0.1:8545",
+
+  "addresses": {
+    "vault": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
+    "poolManager": "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+    "poolSwapHelper": "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
+    "poolAddress": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+    "token0": "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+    "token1": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E"
+  },
+
+  "actors": {
+    "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "user": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "agents": [
+      "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
+    ]
+  },
+
+  "defaultRoute": {
+    "token0": "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+    "token1": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+    "fee": 3000,
+    "pool": "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+  },
+
+  "_comments": {
+    "network": "Network name (localhost, sepolia, mainnet, etc.)",
+    "chainId": "Chain ID (31337 for Hardhat, 1 for mainnet, 11155111 for Sepolia)",
+    "rpcUrl": "Public RPC endpoint (can be overridden by keys.local.json)",
+    "addresses.vault": "SafeAgentVault contract address",
+    "addresses.poolManager": "Uniswap v4 PoolManager contract address",
+    "addresses.poolSwapHelper": "PoolSwapHelper contract address for executing swaps",
+    "addresses.poolAddress": "Logical pool address (used in route configuration)",
+    "addresses.token0": "First token in the pair (lower address)",
+    "addresses.token1": "Second token in the pair (higher address)",
+    "actors.deployer": "Contract deployer address (owner)",
+    "actors.user": "Test user address (has funds in vault)",
+    "actors.agents": "Array of agent addresses (can execute swaps)",
+    "defaultRoute.token0": "Default route token0 address",
+    "defaultRoute.token1": "Default route token1 address",
+    "defaultRoute.fee": "Default route fee tier (3000 = 0.3%)",
+    "defaultRoute.pool": "Default route pool address"
+  }
+}

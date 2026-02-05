@@ -1,0 +1,512 @@
+/**
+ * PythonAgentStatusCard.css
+ *
+ * Python Agent 状态卡片样式
+ * Cyberpunk / Neon 风格
+ */
+
+.python-agent-card {
+  background: rgba(13, 13, 13, 0.95);
+  border: 2px solid #00ff99;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 0 20px rgba(0, 255, 153, 0.3), inset 0 0 30px rgba(0, 255, 153, 0.05);
+  backdrop-filter: blur(10px);
+  font-family: 'Fira Code', 'Courier New', monospace;
+  transition: all 0.3s ease;
+}
+
+.python-agent-card.offline {
+  border-color: #ff4ec9;
+  box-shadow: 0 0 20px rgba(255, 78, 201, 0.3), inset 0 0 30px rgba(255, 78, 201, 0.05);
+}
+
+.python-agent-card:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 153, 0.5), inset 0 0 40px rgba(0, 255, 153, 0.08);
+}
+
+/* Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(0, 255, 153, 0.3);
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #00ff99;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 255, 153, 0.8);
+}
+
+/* Status Badge */
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-badge.online {
+  background: rgba(0, 255, 153, 0.15);
+  border: 2px solid #00ff99;
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
+}
+
+.status-badge.offline {
+  background: rgba(255, 78, 201, 0.15);
+  border: 2px solid #ff4ec9;
+  color: #ff4ec9;
+  text-shadow: 0 0 8px rgba(255, 78, 201, 0.8);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-dot.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Agent Info */
+.agent-info {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.agent-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #00ff99;
+  margin-bottom: 6px;
+  text-shadow: 0 0 12px rgba(0, 255, 153, 0.9);
+}
+
+.agent-address {
+  font-size: 12px;
+  color: #bbb;
+  margin-bottom: 4px;
+}
+
+.agent-strategy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.strategy-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.strategy-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.strategy-badge.sniper {
+  background: rgba(255, 78, 201, 0.15);
+  border: 1px solid #ff4ec9;
+  color: #ff4ec9;
+  text-shadow: 0 0 8px rgba(255, 78, 201, 0.6);
+}
+
+.strategy-badge.arb,
+.strategy-badge.arbitrage {
+  background: rgba(0, 255, 153, 0.15);
+  border: 1px solid #00ff99;
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.6);
+}
+
+.strategy-badge.hold {
+  background: rgba(136, 136, 136, 0.15);
+  border: 1px solid #888;
+  color: #888;
+}
+
+.strategy-badge.momentum {
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid #ffa500;
+  color: #ffa500;
+  text-shadow: 0 0 8px rgba(255, 165, 0, 0.6);
+}
+
+.strategy-badge.unknown {
+  background: rgba(136, 136, 136, 0.1);
+  border: 1px solid #666;
+  color: #666;
+}
+
+/* Stats Row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 10px;
+  background: rgba(0, 255, 153, 0.05);
+  border: 1px solid rgba(0, 255, 153, 0.2);
+  border-radius: 6px;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.6);
+}
+
+/* Section Title */
+.section-title {
+  font-size: 12px;
+  color: #00ff99;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 255, 153, 0.2);
+}
+
+.section-title.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.section-title.clickable:hover {
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0, 255, 153, 0.8);
+}
+
+/* Signal Section */
+.signal-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(0, 255, 153, 0.03);
+  border: 1px solid rgba(0, 255, 153, 0.2);
+  border-radius: 6px;
+}
+
+.signal-content {
+  margin-top: 10px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.signal-json {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 255, 153, 0.3);
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 11px;
+  color: #00ff99;
+  overflow-x: auto;
+  line-height: 1.6;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.signal-json::-webkit-scrollbar {
+  height: 6px;
+}
+
+.signal-json::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.signal-json::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 153, 0.5);
+  border-radius: 3px;
+}
+
+.signal-json::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 153, 0.7);
+}
+
+/* Decision Section */
+.decision-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(0, 255, 153, 0.03);
+  border: 1px solid rgba(0, 255, 153, 0.2);
+  border-radius: 6px;
+}
+
+.decision-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.decision-badge.hold {
+  background: rgba(255, 78, 201, 0.15);
+  border: 2px solid #ff4ec9;
+  color: #ff4ec9;
+  text-shadow: 0 0 10px rgba(255, 78, 201, 0.8);
+}
+
+.decision-badge.swap,
+.decision-badge.trade {
+  background: rgba(0, 255, 153, 0.15);
+  border: 2px solid #00ff99;
+  color: #00ff99;
+  text-shadow: 0 0 10px rgba(0, 255, 153, 0.8);
+  animation: glow 2s ease-in-out infinite;
+}
+
+.decision-badge.error {
+  background: rgba(255, 0, 0, 0.15);
+  border: 2px solid #ff0000;
+  color: #ff0000;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 255, 153, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 153, 0.8);
+  }
+}
+
+.decision-reason {
+  font-size: 12px;
+  color: #bbb;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.trade-params {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 255, 153, 0.2);
+}
+
+.param {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.param-label {
+  color: #888;
+}
+
+.param-value {
+  color: #00ff99;
+  font-weight: 600;
+}
+
+/* Last Trade Section */
+.last-trade-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(0, 255, 153, 0.03);
+  border: 1px solid rgba(0, 255, 153, 0.2);
+  border-radius: 6px;
+}
+
+.trade-info {
+  font-size: 12px;
+}
+
+.trade-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding: 4px 0;
+}
+
+.trade-label {
+  color: #888;
+}
+
+.trade-value {
+  color: #00ff99;
+  font-weight: 600;
+}
+
+.trade-value.highlight {
+  color: #00ff99;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.6);
+  font-weight: 700;
+}
+
+.trade-value code {
+  background: rgba(0, 255, 153, 0.1);
+  padding: 2px 6px;
+  border: 1px solid rgba(0, 255, 153, 0.3);
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.trade-time {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 255, 153, 0.1);
+  font-size: 11px;
+  color: #666;
+  text-align: right;
+}
+
+/* Balance Section */
+.balance-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(0, 255, 153, 0.03);
+  border: 1px solid rgba(0, 255, 153, 0.2);
+  border-radius: 6px;
+}
+
+.balance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.balance-item {
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 255, 153, 0.05);
+  border-radius: 4px;
+}
+
+.balance-label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.balance-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #00ff99;
+}
+
+/* Error Section */
+.error-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(255, 78, 201, 0.05);
+  border: 1px solid rgba(255, 78, 201, 0.3);
+  border-radius: 6px;
+}
+
+.error-content {
+  font-size: 12px;
+  color: #ff4ec9;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.error-time {
+  font-size: 11px;
+  color: #666;
+  text-align: right;
+}
+
+/* Offline State */
+.python-agent-card.offline .error-message {
+  margin: 12px 0;
+  padding: 10px;
+  background: rgba(255, 78, 201, 0.1);
+  border: 1px solid rgba(255, 78, 201, 0.3);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #ff4ec9;
+}
+
+.python-agent-card.offline .hint {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(0, 255, 153, 0.05);
+  border: 1px solid rgba(0, 255, 153, 0.2);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+}
+
+.python-agent-card.offline .hint code {
+  background: rgba(0, 255, 153, 0.1);
+  padding: 2px 6px;
+  border: 1px solid rgba(0, 255, 153, 0.3);
+  border-radius: 3px;
+  color: #00ff99;
+  font-size: 11px;
+}
+
+/* Update Indicator */
+.update-indicator {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 255, 153, 0.1);
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+}

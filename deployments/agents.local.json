@@ -1,0 +1,176 @@
+{
+  "version": "2.0",
+  "lastSync": "2026-02-03T09:30:00Z",
+  "agents": [
+    {
+      "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "name": "Momentum Agent",
+      "ensName": "agent.safe.eth",
+      "description": "Executes momentum-based swaps on volatile pairs with dynamic position sizing.",
+      "strategy": "sniper",
+      "riskLevel": "medium",
+      "enabled": true,
+      "active": true,
+      "version": "1.2.0",
+      "tags": ["uniswap-v4", "momentum", "automated"],
+      "config": {
+        "cap": "100",
+        "maxNotionalPerTrade": "100",
+        "minBalanceThreshold": "10",
+        "pollInterval": 5,
+        "allowedPairs": [
+          {"token0": "mUSD", "token1": "mUSDC", "fee": 3000}
+        ],
+        "slippageTolerance": 0.5
+      },
+      "performance": {
+        "totalTrades": 0,
+        "winRate": 0,
+        "totalPnL": "0",
+        "sharpeRatio": 0,
+        "maxDrawdown": "0"
+      },
+      "metadata": {
+        "createdAt": "2026-02-01T00:00:00Z",
+        "createdBy": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "lastConfigUpdate": "2026-02-03T09:00:00Z"
+      },
+      "ui": {
+        "color": "#FF006E",
+        "icon": "📈",
+        "chartType": "line"
+      },
+      "runtime": {
+        "lastHeartbeat": "2026-02-03T10:25:00Z",
+        "status": "online",
+        "lastError": null
+      },
+      "flags": {
+        "canPause": true,
+        "canAutoRebalance": false,
+        "emergencyStop": false,
+        "showPnL": true,
+        "showLogs": true
+      },
+      "strategyParams": {
+        "target_price": 1.0,
+        "size": 10.0
+      }
+    },
+    {
+      "address": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "name": "Mean Reversion Agent",
+      "ensName": "revert.safe.eth",
+      "description": "Captures mean reversion opportunities in stable pairs with tight spreads.",
+      "strategy": "mean-reversion",
+      "riskLevel": "low",
+      "enabled": false,
+      "active": false,
+      "version": "1.0.3",
+      "tags": ["uniswap-v4", "mean-reversion", "stable"],
+      "config": {
+        "cap": "50",
+        "maxNotionalPerTrade": "50",
+        "minBalanceThreshold": "20",
+        "pollInterval": 10,
+        "allowedPairs": [
+          {"token0": "mUSD", "token1": "mUSDC", "fee": 500}
+        ],
+        "slippageTolerance": 0.1
+      },
+      "performance": {
+        "totalTrades": 0,
+        "winRate": 0,
+        "totalPnL": "0",
+        "sharpeRatio": 0,
+        "maxDrawdown": "0"
+      },
+      "metadata": {
+        "createdAt": "2026-02-02T00:00:00Z",
+        "createdBy": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "lastConfigUpdate": "2026-02-02T12:00:00Z"
+      },
+      "ui": {
+        "color": "#00B4D8",
+        "icon": "🔄",
+        "chartType": "area"
+      },
+      "runtime": {
+        "lastHeartbeat": "2026-02-03T10:20:00Z",
+        "status": "offline",
+        "lastError": null
+      },
+      "flags": {
+        "canPause": true,
+        "canAutoRebalance": true,
+        "emergencyStop": false,
+        "showPnL": true,
+        "showLogs": true
+      },
+      "strategyParams": {
+        "meanWindow": 100,
+        "stdDevThreshold": 2.0,
+        "entryZScore": -1.5,
+        "exitZScore": 0.0
+      }
+    },
+    {
+      "address": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "name": "Arbitrage Hunter",
+      "ensName": "arb.safe.eth",
+      "description": "High-frequency arbitrage across multiple pools with minimal latency.",
+      "strategy": "arbitrage",
+      "riskLevel": "high",
+      "enabled": true,
+      "active": true,
+      "version": "2.1.0",
+      "tags": ["uniswap-v4", "arbitrage", "high-frequency"],
+      "config": {
+        "cap": "200",
+        "maxNotionalPerTrade": "200",
+        "minBalanceThreshold": "50",
+        "pollInterval": 1,
+        "allowedPairs": [
+          {"token0": "mUSD", "token1": "mUSDC", "fee": 3000},
+          {"token0": "mUSD", "token1": "mUSDC", "fee": 500}
+        ],
+        "slippageTolerance": 0.3
+      },
+      "performance": {
+        "totalTrades": 0,
+        "winRate": 0,
+        "totalPnL": "0",
+        "sharpeRatio": 0,
+        "maxDrawdown": "0"
+      },
+      "metadata": {
+        "createdAt": "2026-01-28T00:00:00Z",
+        "createdBy": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "lastConfigUpdate": "2026-02-03T08:00:00Z"
+      },
+      "ui": {
+        "color": "#FFB703",
+        "icon": "⚡",
+        "chartType": "candlestick"
+      },
+      "runtime": {
+        "lastHeartbeat": "2026-02-03T10:24:55Z",
+        "status": "online",
+        "lastError": null
+      },
+      "flags": {
+        "canPause": true,
+        "canAutoRebalance": false,
+        "emergencyStop": false,
+        "showPnL": true,
+        "showLogs": true
+      },
+      "strategyParams": {
+        "minSpread": 0.001,
+        "maxLatency": 100,
+        "minProfitBps": 5,
+        "gasBuffer": 1.2
+      }
+    }
+  ]
+}
