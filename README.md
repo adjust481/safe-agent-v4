@@ -524,12 +524,20 @@ Built for ETHGlobal Hackathon 2024
 
 **Remember**: In AgentFi, the best agent is one that asks permission. 🤖🔐
 
+---
+
 🤖 AI Usage Disclosure
 
 This project leveraged AI tools (Claude 3.5, ChatGPT-4o) as productivity enhancers. Below is a detailed breakdown of how they were used to ensure transparency:
+
 Product Vision & Architecture: 100% human-designed. The core "Human-in-the-loop" safety mechanism and the vault-agent interaction flow were independently conceptualized and visualized using Excalidraw.
+
 Smart Contracts (Solidity): Used Claude to generate initial boilerplate code. However, the critical risk-enforcement logic (route whitelisting, per-trade caps, and ENS verification) was manually implemented and refined to ensure on-chain security.
+
 Python Agent & Strategy: AI was used to assist in writing data parsing scripts. The core trading strategy logic (Sniper/Arbitrage) and the state-syncing mechanism were developed based on manual market analysis.
+
 Frontend (React): I designed the UI layout and UX flow. AI assisted in perfecting CSS styling (Glassmorphism effects) and provided templates for Ethers.js v6 provider integration.
+
 Debugging & Optimization: AI served as a primary debugging tool, helping to rapidly identify and resolve local blockchain connection errors (e.g., ECONNREFUSED) and state polling issues.
+
 Human Contribution Statement: The developer (adjust481) directed all architectural decisions, conducted all deployment operations, and performed manual integration testing to ensure the system functions as a cohesive whole.
