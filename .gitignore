@@ -1,11 +1,16 @@
-node_modules
+# 绝对不能传的内容
+node_modules/
+artifacts/
+cache/
+backups/
 .env
+.DS_Store
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
 
 # Hardhat files
-/cache
-/artifacts
-
-# TypeChain files
 /typechain
 /typechain-types
 

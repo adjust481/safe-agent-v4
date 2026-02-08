@@ -1,244 +1,525 @@
-# Safe Agent Vault for Uniswap v4 (working title)
+# SafeAgentVault
 
-## What is this?
+**A permission firewall for autonomous trading agents — because agents should request, not execute.**
 
-A risk-first "safety exoskeleton" for Uniswap v4 agents:
-- Funds sit in a SafeAgentVault smart contract.
-- Each agent address has a risk profile (limits, allowed pools, modes).
-- Off-chain rule-based agents send trade intents.
-- The vault enforces on-chain guardrails before interacting with Uniswap v4.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Hardhat](https://img.shields.io/badge/Built%20with-Hardhat-yellow)](https://hardhat.org/)
+[![Uniswap V4](https://img.shields.io/badge/Uniswap-V4-ff007a)](https://uniswap.org/)
 
-## Status
+---
 
-- Phase 0: Dev environment setup ✅ / 🔄
-- Phase 1+: Vault + risk config + Uniswap v4 integration (coming next)
+## 🎯 One-Liner
 
-## Quickstart: run the SafeAgentVault demo locally
+**SafeAgentVault is a smart contract firewall that forces AI agents to request execution approval from users, instead of holding private keys or unlimited token approvals.**
 
-This repository contains a minimal "safety exoskeleton" around Uniswap v4-style agents, built with Hardhat and a simple ERC20 vault.
+---
 
-You can run all tests and a full local demo with:
+## 🚨 Problem Statement
 
-```bash
-npm install
-npx hardhat test
+Current AI trading agents have a dangerous custody model:
 
-# run a full end-to-end demo on a local Hardhat network
-TMPDIR=~/hh-tmp npx hardhat run scripts/demoAgent.js
+- **Agents hold private keys** → One bug = total loss
+- **Agents get unlimited ERC20 approvals** → No per-trade limits
+- **No human-in-the-loop** → Strategies execute blindly
+- **No automatic revocation** → Permissions persist forever
+
+**Real-world risk**: A momentum trading agent with a logic error could drain your entire wallet in seconds.
+
+---
+
+## ✅ Solution: Permission Firewall Architecture
+
+SafeAgentVault introduces a **request → approve → execute → revoke** flow:
+
+```
+┌─────────────┐         ┌──────────────────┐         ┌─────────────┐
+│   AI Agent  │ ──────> │  SafeAgentVault  │ <────── │    User     │
+│  (Strategy) │ Request │  (Firewall)      │ Approve │  (Wallet)   │
+└─────────────┘         └──────────────────┘         └─────────────┘
+                                 │
+                                 │ Execute
+                                 ▼
+                        ┌──────────────────┐
+                        │  Uniswap V4 Pool │
+                        └──────────────────┘
 ```
 
-This script will:
+### Key Principles
 
-- Deploy a mock ERC20 token (MockERC20) and a SafeAgentVault.
-- Mint 1000 mUSD to a user, approve and deposit all into the vault.
-- Configure an agent with:
-  - an ENS-like label (agent.safe.eth)
-  - a whitelist of allowed pools
-  - a per-trade notional limit (maxNotionalPerTrade)
-- Allocate 200 mUSD from the user's main balance into the agent sub-account.
-- Let the agent call executeSwap(...), which passes the on-chain risk checks and emits an AgentSwapExecuted event.
+1. **Agents never hold funds** — All assets stay in the vault
+2. **Agents can only request** — `requestExecution()` creates a pending approval
+3. **Users must approve** — Wallet signature required for every trade
+4. **Auto-revoke after execution** — Permissions reset to zero immediately
+5. **Per-agent spending caps** — `maxNotionalPerTrade` enforced on-chain
 
-This demonstrates the full flow:
+---
 
-**User → Vault → Agent limits → Trade intent → Risk shell decision**
+## 🏗️ Architecture Overview
 
-even before wiring the vault into a real Uniswap v4 PoolManager.
+### Core Components
 
-## Architecture: "safety exoskeleton" for Uniswap v4 agents
+**1. SafeAgentVault (Smart Contract)**
+- Holds user funds in isolated sub-accounts
+- Enforces per-agent spending limits
+- Manages pending execution requests
+- Auto-revokes permissions after each trade
 
-The core idea of this project is to separate **"risk shell"** from **"strategy brains"**:
+**2. Agent Control Panel (React Frontend)**
+- Multi-agent dashboard with real-time status
+- Pending approval cards with trade details
+- One-click approve/reject interface
+- ENS-based agent identity display
 
-- Users deposit ERC20 assets into `SafeAgentVault`.
-- Each agent gets a **per-user sub-account** via:
-  - `mapping(address => mapping(address => uint256)) agentBalances;  // user -> agent -> amount`
-- The owner configures per-agent limits through:
-  - `maxNotionalPerTrade` (per-trade notional cap)
-  - a whitelist of allowed pools
-  - (future) daily limits, leverage flags, etc.
-- Off-chain agents only send **intents**, such as:
-  - "swap X amount in pool P, direction D"
-- The vault enforces **on-chain guardrails** before any execution:
-  - the agent is enabled
-  - the target pool is whitelisted
-  - the trade amount ≤ `maxNotionalPerTrade`
-  - the agent has enough allocated balance in `agentBalances[user][agent]`
+**3. Python Agent Runtime**
+- Autonomous strategy execution (momentum, arbitrage, etc.)
+- Market signal monitoring
+- `requestExecution()` transaction submission
+- State persistence and logging
 
-In the current phase:
+**4. Uniswap V4 Integration**
+- Direct PoolManager interaction
+- Route-based trading with whitelisted pools
+- Slippage protection on every swap
 
-- `executeSwap(...)` acts as a **stub**:
-  - it validates risk constraints
-  - it emits `AgentSwapExecuted(agent, user, ensNode, routeId, pool, zeroForOne, amountIn, amountOut)`
-  - it does **not** yet call a real Uniswap v4 PoolManager
+---
 
-In the next phase, this stub will be wired into:
+## 🔄 Execution Flow
 
-- a minimal Uniswap v4 deployment (PoolManager + a simple pool)
-- with the same vault-level risk checks in front of every swap,
-- so Uniswap agents can "fight" in a sandbox **without having direct custody of user funds**.
+### State Machine: IDLE → REQUEST → APPROVE → EXECUTE → REVOKE
 
-This makes the vault a reusable **safety layer** that different agent strategies can plug into, instead of each strategy having to re-implement its own ad-hoc risk checks.
+```
+1. IDLE
+   └─> Agent monitors market conditions
 
-Visually, the system is organized as a three-layer flow:
+2. REQUEST
+   └─> Agent calls vault.requestExecution(amountIn, minOut, zeroForOne)
+   └─> Vault stores PendingRequest with timestamp
+   └─> Frontend shows "Pending Approval" card
 
-- **Left:** Users / dApps interact with the system and submit high-level intents.
-- **Center:** `SafeAgentVault` holds custody of funds, manages per-user and per-agent balances, and enforces risk limits.
-- **Right:** A Uniswap v4 sandbox (PoolManager + pools) executes swaps, always behind the vault's safety shell.
+3. APPROVE
+   └─> User reviews: Strategy, Amount, Slippage, Risk Checks
+   └─> User clicks "Authorize & Execute" in UI
+   └─> Wallet prompts for signature
 
-The following diagram summarizes this architecture:
+4. EXECUTE
+   └─> Vault calls PoolSwapHelper.swap()
+   └─> Uniswap V4 executes trade
+   └─> Vault updates balances
 
-![SafeAgentVault + Uniswap v4 architecture](architecture.png)
+5. REVOKE
+   └─> Vault sets agent.enabled = false
+   └─> Vault sets agent.maxNotionalPerTrade = 0
+   └─> Agent must be re-enabled for next trade
+```
 
-## ENS-aware Agent Identity (Optional, Sponsor-facing)
+**Critical Safety Feature**: Step 5 (auto-revoke) happens **atomically** in the same transaction as execution. No window for unauthorized trades.
 
-SafeAgentVault supports **ENS-based agent identity** for improved readability, auditability, and optional enforcement:
+---
 
-- Each agent can be associated with an **ENS node** (bytes32 namehash) via `AgentConfig.ensNode`
-- The `ensNode` is emitted in all `AgentSwapExecuted` events for off-chain tracking and UI display
-- **Optional on-chain enforcement**: The vault owner can set an ENS Registry address via `setENSRegistry(address)`
-  - When configured, `executeSwap()` validates that `msg.sender` matches the on-chain owner of the ENS node
-  - This prevents unauthorized agents from impersonating registered identities
-  - By default (`ensRegistry = address(0)`), ENS validation is disabled for local testing
+## 📚 Documentation
 
-### ENS Integration Benefits
+Comprehensive documentation is available in the `/docs` directory:
 
-- **Readability**: Instead of `0x3C44...93BC`, display `agent.safe.eth` in UIs and audit logs
-- **Auditability**: All swap events include the ENS node, making it easy to filter by agent identity
-- **Sponsor alignment**: Demonstrates integration with ENS (Ethereum Name Service) for decentralized identity
-- **Optional enforcement**: Production deployments can enable on-chain ENS ownership verification
+- **[Demo Guide](docs/demo/)** — Hackathon walkthrough and video script
+- **[Architecture](docs/architecture/)** — System design, implementation details, and configuration structure
 
-### ENS Resources
+Additional resources:
+- **[Setup Guide](docs/setup/)** — Environment setup and deployment instructions
+- **[Frontend Docs](docs/frontend/)** — UI components and integration guides
+- **[Testing](docs/testing/)** — Test suite and verification checklists
 
-- Official ENS documentation: [docs.ens.domains](https://docs.ens.domains)
-- ENS Registry (Mainnet): `0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e`
-- Namehash specification: [EIP-137](https://eips.ethereum.org/EIPS/eip-137)
-- **ENS Resolution Tool**: See `tools/ens_resolve.mjs` for resolving ENS names and computing namehashes
+---
 
-### Example Usage
+## 🎬 Demo Walkthrough
+
+### What You'll See (3-Minute Video)
+
+1. **Agent Dashboard** — Three agents with different strategies:
+   - 📈 Momentum Agent (`momentum.agent.eth`) — Trend following
+   - 🔄 Mean Reversion Agent — Counter-trend trading
+   - ⚡ Arbitrage Hunter — Cross-pool opportunities
+
+2. **Live Market Monitoring** — Python agent detects 0.15% spread opportunity
+
+3. **Execution Request** — Agent submits `requestExecution()` transaction
+
+4. **Approval Modal** — UI shows:
+   - AI reasoning: "Detected favorable market conditions..."
+   - Trade details: 150 USDC, 0.5% slippage
+   - Risk checks: ✅ ENS verified, ✅ Pool whitelisted, ✅ Under daily limit
+
+5. **Wallet Confirmation** — User approves via MetaMask
+
+6. **Execution & Revoke** — Trade executes, permissions auto-revoke
+
+7. **Post-Trade State** — Agent status changes to "Disabled" until re-enabled
+
+---
+
+## 🛡️ Core Features
+
+### 1. Permissioned Agent Execution
+
+**Problem**: Traditional bots need unlimited approvals or private key access.
+
+**Solution**: Two-step execution with mandatory user approval.
 
 ```solidity
-// Configure agent with ENS node
-bytes32 ensNode = keccak256(abi.encodePacked("agent.safe.eth"));
-vault.setAgentConfig(agentAddress, true, ensNode, allowedRoutes, maxPerTrade);
+// Agent submits request (no execution)
+function requestExecution(
+    uint256 amountIn,
+    uint256 minOut,
+    bool zeroForOne
+) external onlyAgent;
 
-// Optional: Enable ENS enforcement (production only)
-vault.setENSRegistry(0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e);
-
-// Now executeSwap() will verify msg.sender == ENS owner
+// User approves and executes (requires wallet signature)
+function approveAndExecute() external onlyOwner;
 ```
 
-## Uniswap v4 Agentic Prize Alignment
+**Result**: Agent can never execute without explicit user consent.
 
-This project targets the **"Uniswap v4 Agentic Finance"** prize track with the following key alignments:
+---
 
-### Safety Layer for Autonomous Agents
+### 2. Execution Cap (Per-Trade Limits)
 
-- **Non-custodial agent architecture**: Agents never hold user funds directly
-- **On-chain risk enforcement**: All trades pass through vault-level guardrails before execution
-- **Per-agent risk profiles**: Configurable limits (notional caps, pool whitelists, daily limits)
-- **Sub-account isolation**: Each user-agent pair has isolated balance tracking via `agentBalances[user][agent]`
+**Problem**: A buggy strategy could drain your entire balance.
 
-### Uniswap v4 Integration
+**Solution**: On-chain spending limits per agent.
 
-- **Native v4 PoolManager integration**: Direct swap execution through Uniswap v4's hook-enabled architecture
-- **Route-based trading**: Uses `routeId` (bytes32) to encapsulate pool parameters (token0, token1, fee, pool address)
-- **Slippage protection**: Enforces `minAmountOut` on every swap
-- **Event-driven auditability**: Emits `AgentSwapExecuted` with full trade details for off-chain monitoring
-
-### Reproducible Demo
-
-- **End-to-end local testing**: Full demo script (`scripts/demoAgent.js`) deploys contracts, configures agents, and executes swaps
-- **Comprehensive test suite**: 23 passing tests covering vault operations, agent limits, and swap execution
-- **Mock v4 environment**: Includes simplified PoolManager and PoolSwapHelper for local development
-- **Python agent toolkit**: Reference implementation with policy engine, state monitoring, and manual swap execution
-
-### Upgrade Path
-
-- **Modular design**: Vault logic separated from swap execution (via `IPoolSwapHelper` interface)
-- **ENS integration ready**: Optional identity verification for production deployments
-- **Route registry**: Centralized route management with enable/disable controls
-- **Hook compatibility**: Architecture designed to work with Uniswap v4 hooks for advanced strategies
-
-### Key Differentiators
-
-- **Risk-first approach**: Safety checks happen on-chain, not in agent code
-- **Reusable safety shell**: Multiple agent strategies can share the same vault infrastructure
-- **Transparent operations**: All agent actions logged on-chain with ENS-aware event emissions
-- **Sponsor alignment**: Integrates ENS for identity, targets Uniswap v4 for execution
-
-## Phases (Evolution Map)
-
-```mermaid
-graph LR
-    A[Phase 0: Setup] --> B[Phase 1: Basic Vault]
-    B --> C[Phase 2: Agent Limits]
-    C --> D[Phase 3: Risk Config]
-    D --> E[Phase 4: Uniswap v4 Integration]
-    E --> F[Phase 5: ENS + Routes]
-
-    A:::phase0
-    B:::phase1
-    C:::phase2
-    D:::phase3
-    E:::phase4
-    F:::phase5
-
-    classDef phase0 fill:#e1f5e1,stroke:#4caf50,stroke-width:2px
-    classDef phase1 fill:#e1f5e1,stroke:#4caf50,stroke-width:2px
-    classDef phase2 fill:#e1f5e1,stroke:#4caf50,stroke-width:2px
-    classDef phase3 fill:#e1f5e1,stroke:#4caf50,stroke-width:2px
-    classDef phase4 fill:#e1f5e1,stroke:#4caf50,stroke-width:2px
-    classDef phase5 fill:#fff9c4,stroke:#fbc02d,stroke-width:3px
-
-    style A text-align:left
-    style B text-align:left
-    style C text-align:left
-    style D text-align:left
-    style E text-align:left
-    style F text-align:left
+```solidity
+struct AgentConfig {
+    bool enabled;
+    uint256 maxNotionalPerTrade;  // e.g., 100 USDC max per swap
+    bytes32 ensNode;
+    bytes32[] allowedRoutes;
+}
 ```
 
-### Phase 0: Development Environment Setup ✅
-- Hardhat project initialization
-- Basic ERC20 mock contracts
-- Test infrastructure
+**Example**: Even if a momentum agent goes rogue, it can only lose `maxNotionalPerTrade` per approved transaction.
 
-### Phase 1: Basic Vault Operations ✅
-- `SafeAgentVault` contract with deposit/withdraw
-- User balance tracking: `balances[user]`
-- ERC20 custody and accounting
+---
 
-### Phase 2: Agent Sub-accounts ✅
-- Per-user, per-agent balance allocation: `agentBalances[user][agent]`
-- `allocateToAgent()` and `deallocateFromAgent()` functions
-- Agent spending tracking: `agentSpent[user][agent]`
+### 3. Multi-Agent Control Panel
 
-### Phase 3: Risk Configuration ✅
-- `AgentLimits` struct with `maxPerTrade`, `dailyLimit`, `canUseLeverage`
-- `setAgentLimits()` for owner-controlled risk profiles
-- `consumeAgentBalance()` with limit enforcement
+**Problem**: Managing multiple strategies is complex.
 
-### Phase 4: Uniswap v4 Integration ✅
-- Mini v4 PoolManager deployment
-- `PoolSwapHelper` for swap execution
-- `executeSwap()` with real on-chain swaps
-- `AgentSwapExecuted` event emission
+**Solution**: Unified dashboard with per-agent controls.
 
-### Phase 5: ENS Identity + Route Registry 🔄 (Current)
-- **Phase 5.1**: Route-based trading with `routeId` (bytes32)
-  - `Route` struct: token0, token1, fee, pool, enabled
-  - `setRoute()` and `setDefaultRouteId()` functions
-  - `AgentConfig.allowedRoutes` whitelist
-- **Phase 5.2**: ENS integration for agent identity
-  - `AgentConfig.ensNode` (bytes32 namehash)
-  - Optional `ensRegistry` for on-chain ownership verification
-  - ENS-aware event emissions
-- **Phase 5.3**: Enhanced event structure
-  - `AgentSwapExecuted` includes `ensNode` and `routeId`
-  - Improved auditability and UI integration
+**Features**:
+- Enable/disable agents individually
+- Adjust spending caps on the fly
+- View real-time P&L and trade history
+- Monitor pending approvals across all agents
 
-### Future Phases (Roadmap)
-- **Phase 6**: Multi-asset support (multiple ERC20 tokens)
-- **Phase 7**: Advanced risk controls (daily limits, cooldowns, circuit breakers)
-- **Phase 8**: Hook integration for custom strategies
-- **Phase 9**: Governance and decentralized agent registry
-- **Phase 10**: Production deployment and audits
+**UI Preview**:
+```
+┌─────────────────────────────────────────────────┐
+│ 📈 Momentum Agent          [ENABLED]  [EDIT]   │
+│ momentum.agent.eth                              │
+│ Balance: 150 USDC  |  Spent: 50 USDC           │
+│ Cap: 100 USDC/trade                             │
+│ ✅ Pending Approval: 150 USDC swap             │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+### 4. ENS-Based Agent Identity
+
+**Problem**: Addresses like `0x3C44...93BC` are unreadable and hard to audit.
+
+**Solution**: Human-readable ENS names for every agent.
+
+```javascript
+// Instead of this:
+Agent: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+
+// Show this:
+Agent: momentum.agent.eth
+```
+
+**Benefits**:
+- **Readability**: Users see `arb.agent.eth` instead of hex addresses
+- **Auditability**: All events include ENS node for filtering
+- **Revocability**: Disable agent by ENS name, not address lookup
+- **Sponsor Alignment**: Integrates ENS for decentralized identity
+
+---
+
+### 5. Execution Request UI
+
+**Problem**: Users need context to approve trades safely.
+
+**Solution**: Rich approval cards with AI reasoning and risk checks.
+
+**Approval Modal Includes**:
+- **AI Decision Analysis**: "Market conditions favorable: Detected 0.15% spread opportunity with strong buy signal..."
+- **Transaction Details**: Amount, direction, slippage, estimated output
+- **Risk Control Checklist**:
+  - ✅ ENS Address Verified
+  - ✅ Route Contract Whitelisted
+  - ✅ Under Daily Trade Limit
+  - ✅ Sufficient Balance Available
+- **Market Signal Data**: Best bid/ask, spread, timestamp
+
+**User Action**: One-click "Authorize & Execute" or "Reject"
+
+---
+
+## 🧪 Tech Stack
+
+### Smart Contracts
+- **Solidity 0.8.26** — Core vault logic
+- **Hardhat** — Development environment
+- **Uniswap V4** — PoolManager integration
+- **OpenZeppelin** — ERC20 utilities
+
+### Frontend
+- **React 18** — UI framework
+- **Vite** — Build tool
+- **ethers.js v6** — Blockchain interaction
+- **Custom hooks** — `useAgentRuntime`, `useAgentData`
+
+### Backend
+- **Python 3.11** — Agent runtime
+- **web3.py** — Contract interaction
+- **Flask** — State server (serves `state.json`)
+
+### Infrastructure
+- **Hardhat Node** — Local blockchain (chainId: 31337)
+- **ENS Integration** — Agent identity resolution
+- **JSON-RPC** — Frontend ↔ Hardhat communication
+
+---
+
+## 🚀 How to Run Locally
+
+### Prerequisites
+```bash
+node >= 18.0.0
+npm >= 9.0.0
+python >= 3.11
+```
+
+### Step 1: Install Dependencies
+```bash
+npm install
+cd frontend && npm install && cd ..
+pip3 install web3 flask flask-cors python-dotenv
+```
+
+### Step 2: Start Hardhat Node (Terminal 1)
+```bash
+npx hardhat node
+```
+**Output**: Local blockchain running on `http://127.0.0.1:8545`
+
+### Step 3: Deploy Contracts (Terminal 2)
+```bash
+TMPDIR=~/hh-tmp npx hardhat run scripts/demoAgent.js --network localhost
+```
+**Output**:
+- Vault deployed at `0x9fE4...6e0`
+- 3 agents configured with ENS names
+- Test swap executed successfully
+
+### Step 4: Start Flask Server (Terminal 3)
+```bash
+python3 server.py
+```
+**Output**: State server running on `http://localhost:8888`
+
+### Step 5: Start Python Agent (Terminal 4)
+```bash
+python3 agent_py/loop_agent.py
+```
+**Output**:
+- Agent monitoring market every 10s
+- Submits `requestExecution()` when strategy triggers
+- Writes state to `agent_py/state.json`
+
+### Step 6: Start Frontend (Terminal 5)
+```bash
+cd frontend
+npm run dev
+```
+**Output**: UI running on `http://localhost:5173`
+
+### Step 7: Test the Flow
+1. Open `http://localhost:5173` in browser
+2. Wait for agent to detect opportunity (~10-30 seconds)
+3. Approval modal appears automatically
+4. Click "Authorize & Execute"
+5. Confirm in wallet (uses Hardhat account #0)
+6. Watch trade execute and permissions revoke
+
+---
+
+## 🎯 Why This Matters
+
+### For Users
+- **No more blind trust** — Approve every trade individually
+- **Quantified risk** — Know maximum loss per transaction
+- **Instant revocation** — Permissions reset after each trade
+- **Multi-agent safety** — Run multiple strategies without cross-contamination
+
+### For Developers
+- **Reusable safety layer** — Plug any strategy into the vault
+- **On-chain enforcement** — Risk checks can't be bypassed
+- **Event-driven monitoring** — Full audit trail via `AgentSwapExecuted` events
+- **Modular architecture** — Swap out PoolManager, add new risk rules
+
+### For the Ecosystem
+- **AgentFi primitive** — Standard pattern for autonomous finance
+- **Regulatory alignment** — User consent for every transaction
+- **Composability** — Other protocols can build on top
+- **Sponsor integration** — Uses ENS (identity) + Uniswap V4 (execution)
+
+---
+
+## 🏆 Hackathon Alignment
+
+### Uniswap V4 Agentic Prize Track
+
+**Why SafeAgentVault fits**:
+
+1. **Native V4 Integration** — Direct PoolManager interaction, not a wrapper
+2. **Agent Safety Layer** — Solves custody problem for autonomous strategies
+3. **Hook-Compatible** — Architecture supports custom v4 hooks
+4. **Reproducible Demo** — Full local setup in 5 minutes
+
+### ENS Integration
+
+**Why ENS matters here**:
+
+1. **Agent Identity** — `momentum.agent.eth` vs `0x3C44...93BC`
+2. **Revocation UX** — Disable by name, not address
+3. **Event Auditability** — Filter logs by ENS node
+4. **Production-Ready** — Optional on-chain ownership verification
+
+---
+
+## 📊 Project Status
+
+### ✅ Completed
+- [x] SafeAgentVault core contract
+- [x] Request → Approve → Execute → Revoke flow
+- [x] Multi-agent control panel UI
+- [x] Python agent runtime with strategies
+- [x] Uniswap V4 PoolManager integration
+- [x] ENS-based agent identity
+- [x] Approval modal with risk checks
+- [x] Auto-revoke after execution
+- [x] Per-agent spending caps
+- [x] Route whitelisting
+
+### 🔄 In Progress
+- [ ] Daily spending limits (per-agent)
+- [ ] Circuit breakers (pause all agents)
+- [ ] Multi-token support (currently USDC only)
+
+### 🔮 Future Roadmap
+- [ ] Governance for agent registry
+- [ ] Slashing for malicious agents
+- [ ] Cross-chain agent execution
+- [ ] Integration with AI oracles (Chainlink Functions)
+
+---
+
+## 🧪 Testing
+
+### Run Full Test Suite
+```bash
+npx hardhat test
+```
+
+**Coverage**:
+- ✅ Vault deposit/withdraw
+- ✅ Agent allocation/deallocation
+- ✅ Request execution validation
+- ✅ Approval and execution flow
+- ✅ Auto-revoke after trade
+- ✅ Spending cap enforcement
+- ✅ Route whitelisting
+- ✅ ENS integration
+
+**Output**: 23 passing tests
+
+---
+
+## 📁 Project Structure
+
+```
+safe-agent-v4/
+├── contracts/
+│   ├── SafeAgentVault.sol       # Core vault with approval flow
+│   ├── PoolSwapHelper.sol       # Uniswap V4 swap executor
+│   └── MockERC20.sol            # Test token
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ApprovalModal.jsx      # Trade approval UI
+│   │   │   ├── AgentHeartbeat.jsx     # Status indicator
+│   │   │   └── PendingApprovalCard.jsx
+│   │   ├── hooks/
+│   │   │   ├── useAgentRuntime.js     # Polls state.json
+│   │   │   └── useAgentData.js        # Blockchain reads
+│   │   └── AgentDetailView.jsx        # Main dashboard
+├── agent_py/
+│   ├── loop_agent.py            # Autonomous agent runtime
+│   ├── state.json               # Current agent state
+│   └── strategies/              # Trading strategies
+├── scripts/
+│   └── demoAgent.js             # Full deployment script
+└── test/
+    └── SafeAgentVault.test.js   # Contract tests
+```
+
+---
+
+## 🤝 Contributing
+
+This is a hackathon project, but contributions are welcome!
+
+**Areas for improvement**:
+- Additional trading strategies (grid trading, DCA, etc.)
+- Gas optimization for approval flow
+- Multi-sig support for approvals
+- Mobile-friendly UI
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details
+
+---
+
+## 🔗 Links
+
+- **Demo Video**: [Coming Soon]
+- **Live Demo**: [Coming Soon]
+- **Documentation**: See `/docs` folder
+- **ENS Docs**: https://docs.ens.domains
+- **Uniswap V4**: https://docs.uniswap.org/contracts/v4/overview
+
+---
+
+## 👥 Team
+
+Built for ETHGlobal Hackathon 2024
+
+**Contact**: [Your Contact Info]
+
+---
+
+## 🙏 Acknowledgments
+
+- **Uniswap Foundation** — V4 PoolManager architecture
+- **ENS Team** — Decentralized identity infrastructure
+- **OpenZeppelin** — Secure contract libraries
+- **Hardhat** — Best-in-class dev tooling
+
+---
+
+**Remember**: In AgentFi, the best agent is one that asks permission. 🤖🔐
