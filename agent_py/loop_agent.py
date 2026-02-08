@@ -25,6 +25,7 @@ from strategies import build_policy, SwapIntent
 PNL = 0.0
 PNL_HISTORY = []
 LOGS = []
+BALANCE_HISTORY = []  # Track last 20 balance snapshots for frontend chart
 
 # Project root directory (independent of cwd)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -41,6 +42,7 @@ SIGNALS_PATH = PROJECT_ROOT / "agent_py" / "signals.json"
 # Limits
 MAX_LOGS = 80
 MAX_PNL_HISTORY = 200
+MAX_BALANCE_HISTORY = 20  # Keep last 20 balance snapshots for frontend chart
 
 
 def add_log(level, msg):
@@ -69,6 +71,35 @@ def update_pnl(delta):
     # Keep only last MAX_PNL_HISTORY entries
     if len(PNL_HISTORY) > MAX_PNL_HISTORY:
         PNL_HISTORY = PNL_HISTORY[-MAX_PNL_HISTORY:]
+
+
+def record_balance(snapshot):
+    """
+    Record current balance snapshot for frontend chart.
+    Keeps only the last 20 entries.
+
+    Args:
+        snapshot: Vault snapshot dict containing balance information
+    """
+    global BALANCE_HISTORY
+
+    # Extract vault balance and convert to float (in tokens, not wei)
+    vault_balance_wei = snapshot.get('vault_balance', 0)
+    vault_balance = float(vault_balance_wei) / 1e18
+
+    # Create data point with current time and balance
+    now = datetime.now().strftime("%H:%M:%S")
+    data_point = {
+        "time": now,
+        "balance": round(vault_balance, 4)
+    }
+
+    # Append to history
+    BALANCE_HISTORY.append(data_point)
+
+    # Keep only last MAX_BALANCE_HISTORY entries
+    if len(BALANCE_HISTORY) > MAX_BALANCE_HISTORY:
+        BALANCE_HISTORY.pop(0)
 
 
 def load_agents_config():
@@ -146,13 +177,13 @@ def find_agent_config(agents_config, agent_address):
     }
 
 
-def write_state(action, reason, snapshot, trade_count, iteration, agent_config, mode, intent=None, last_trade=None, error=None):
+def write_state(action, reason, snapshot, trade_count, iteration, agent_config, mode, intent=None, last_trade=None, error=None, status=None):
     """
     Write current agent state to state.json (frontend-compatible format).
     Uses atomic write (tmp file + rename) to prevent partial reads.
 
     Args:
-        action: 'HOLD', 'SWAP', or 'ERROR'
+        action: 'HOLD', 'SWAP', 'REQUEST_PENDING', or 'ERROR'
         reason: Decision reason string
         snapshot: Vault snapshot dict
         trade_count: Total trades executed
@@ -162,12 +193,23 @@ def write_state(action, reason, snapshot, trade_count, iteration, agent_config, 
         intent: Optional SwapIntent object
         last_trade: Optional dict with trade details
         error: Optional error message
+        status: Optional status override (default: 'running' or 'AWAITING_APPROVAL' if action is REQUEST_PENDING)
     """
-    now = datetime.utcnow().isoformat() + "Z"
+    global BALANCE_HISTORY
+    # Use YYYY-MM-DD HH:MM:SS format (no timezone suffix) so that
+    # the frontend's `new Date(...)` parses it reliably across browsers.
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Determine status based on action if not explicitly provided
+    if status is None:
+        if action == 'REQUEST_PENDING':
+            status = 'AWAITING_APPROVAL'
+        else:
+            status = 'running'
 
     # Build minimal state structure for frontend
     state = {
-        "status": "running",
+        "status": status,
         "last_update": now,
         "loop_count": iteration,
         "total_trades": trade_count,
@@ -189,12 +231,16 @@ def write_state(action, reason, snapshot, trade_count, iteration, agent_config, 
             "agent_sub_balance": str(snapshot['agent_sub_balance']),
             "agent_spent": str(snapshot['agent_spent']),
             "vault_balance": str(snapshot['vault_balance'])
-        }
+        },
+
+        # Add balance history for frontend chart
+        "pnl_history": BALANCE_HISTORY
     }
 
     # Add optional fields only if present
     if intent:
-        state["intent"] = {
+        # Build comprehensive intent structure for frontend
+        intent_data = {
             "action": intent.action,
             "reason": intent.reason,
             "zeroForOne": intent.zero_for_one,
@@ -202,6 +248,21 @@ def write_state(action, reason, snapshot, trade_count, iteration, agent_config, 
             "minOut": str(intent.min_amount_out) if intent.min_amount_out is not None else None,
             "meta": intent.meta or {}
         }
+
+        # Add human-readable fields for frontend display
+        if intent.amount_in is not None:
+            intent_data["amount"] = f"{format_token_amount(intent.amount_in):.2f}"
+            intent_data["token"] = "USDC"  # TODO: Make this dynamic based on token config
+
+        intent_data["strategy"] = agent_config.get("strategy", "unknown")
+        intent_data["target"] = "Uniswap V4 Pool"  # TODO: Make this dynamic based on route
+
+        # Calculate slippage percentage
+        if intent.amount_in and intent.min_amount_out:
+            slippage = ((intent.amount_in - intent.min_amount_out) / intent.amount_in * 100)
+            intent_data["slippage"] = f"{slippage:.2f}%"
+
+        state["intent"] = intent_data
 
     if last_trade:
         state["last_trade"] = {
@@ -278,7 +339,8 @@ def execute_swap_tx(w3, vault, agent_account, user_address, route_id, zero_for_o
 
     # Sign and send
     signed_tx = agent_account.sign_transaction(tx)
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    raw = signed_tx.raw_transaction if hasattr(signed_tx, 'raw_transaction') else signed_tx.rawTransaction
+    tx_hash = w3.eth.send_raw_transaction(raw)
 
     print(f"  Transaction sent: {tx_hash.hex()}")
     print("  Waiting for confirmation...")
@@ -301,6 +363,7 @@ def main():
     dry_run = os.getenv('DRY_RUN', '0') == '1'
     stop_after_n = os.getenv('STOP_AFTER_N_TRADES')
     poll_interval = int(os.getenv('POLL_INTERVAL', '10'))  # seconds
+    simulate_approval = os.getenv('SIMULATE_APPROVAL', '0') == '1'  # Trigger approval request on iteration 5
 
     mode = "DRY_RUN" if dry_run else "LIVE"
 
@@ -377,6 +440,9 @@ def main():
             # Get current state
             snapshot = get_vault_snapshot(w3, vault, deployment)
 
+            # Record balance for frontend chart
+            record_balance(snapshot)
+
             agent_balance = format_token_amount(snapshot['agent_sub_balance'])
             agent_spent = format_token_amount(snapshot['agent_spent'])
 
@@ -430,6 +496,50 @@ def main():
 
             add_log("INFO", f"Iteration {iteration} {intent.action} ({intent.reason})")
 
+            # Simulation: Trigger approval request on iteration 5 (if SIMULATE_APPROVAL=1)
+            if simulate_approval and iteration == 5 and intent.action == 'SWAP':
+                print("\n" + "="*60)
+                print("🚨 SIMULATION: Triggering approval request workflow")
+                print("="*60)
+
+                # Create a mock intent for approval request
+                approval_intent = SwapIntent(
+                    action="SWAP",
+                    reason="检测到 Uniswap V4 价格偏离 2.5%，建议执行套利策略。该操作已通过 ENS 身份验证及白名单路由校验。",
+                    zero_for_one=intent.zero_for_one,
+                    amount_in=intent.amount_in,
+                    min_amount_out=intent.min_amount_out,
+                    meta={
+                        "signal": signals if signals else {},
+                        "simulation": True,
+                        "trigger_iteration": iteration
+                    }
+                )
+
+                # Write state with REQUEST_PENDING action
+                write_state(
+                    'REQUEST_PENDING',
+                    approval_intent.reason,
+                    snapshot,
+                    trade_count,
+                    iteration,
+                    agent_config,
+                    mode,
+                    intent=approval_intent,
+                    status='AWAITING_APPROVAL'
+                )
+
+                print("✅ Approval request written to state.json")
+                print("   Frontend should now display the approval modal")
+                print("   Waiting for user approval...")
+                print()
+
+                # In a real implementation, we would wait for approval here
+                # For simulation, we'll just continue after showing the state
+                print(f"Sleeping for {poll_interval}s...")
+                time.sleep(poll_interval)
+                continue
+
             if intent.action == 'SWAP':
                 # Request execution (agent no longer executes directly)
                 amount_in = intent.amount_in
@@ -455,7 +565,8 @@ def main():
                         })
 
                         signed_tx = agent_account.sign_transaction(tx)
-                        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+                        raw = signed_tx.raw_transaction if hasattr(signed_tx, 'raw_transaction') else signed_tx.rawTransaction
+                        tx_hash = w3.eth.send_raw_transaction(raw)
                         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
                         print(f"  Request sent: {tx_hash.hex()}")

@@ -5,6 +5,7 @@
  * - Fetches agent balances, config, and route info
  * - Polls every 2 seconds
  * - Returns loading state and error handling
+ * - NO mock data — contract errors propagate to error state
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -21,17 +22,17 @@ export function useAgentData(vault, deployment, agentAddress, userAddress, pollI
     }
 
     try {
-      // Query balances
+      // Query balances — no mock fallback, errors propagate
       const userBalance = await vault.balances(userAddress);
       const agentSubBalance = await vault.agentBalances(userAddress, agentAddress);
       const agentSpentAmount = await vault.agentSpent(userAddress, agentAddress);
 
       // Query agent config (defensive - only access first 3 fields)
-      const cfg = await vault.agentConfigs(agentAddress);
+      const cfgRaw = await vault.agentConfigs(agentAddress);
       const agentConfig = {
-        enabled: cfg?.[0] ?? false,
-        ensNode: cfg?.[1] ? ethers.hexlify(cfg[1]) : '0x0000000000000000000000000000000000000000000000000000000000000000',
-        maxNotionalPerTrade: cfg?.[2] ?? 0n,
+        enabled: cfgRaw?.[0] ?? false,
+        ensNode: cfgRaw?.[1] ? ethers.hexlify(cfgRaw[1]) : '0x0000000000000000000000000000000000000000000000000000000000000000',
+        maxNotionalPerTrade: cfgRaw?.[2] ?? 0n,
       };
 
       // Query poolSwapHelper
@@ -39,23 +40,23 @@ export function useAgentData(vault, deployment, agentAddress, userAddress, pollI
 
       // Query default route (defensive - access by index)
       const defaultRouteId = await vault.defaultRouteId();
-      const route = await vault.routes(defaultRouteId);
+      const routeRaw = await vault.routes(defaultRouteId);
       const defaultRoute = {
-        token0: route?.[0] ?? ethers.ZeroAddress,
-        token1: route?.[1] ?? ethers.ZeroAddress,
-        fee: route?.[2] ?? 0,
-        pool: route?.[3] ?? ethers.ZeroAddress,
-        enabled: route?.[4] ?? false,
+        token0: routeRaw?.[0] ?? ethers.ZeroAddress,
+        token1: routeRaw?.[1] ?? ethers.ZeroAddress,
+        fee: routeRaw?.[2] ?? 0,
+        pool: routeRaw?.[3] ?? ethers.ZeroAddress,
+        enabled: routeRaw?.[4] ?? false,
       };
 
       // Query pending execution request
-      const req = await vault.pendingRequest();
+      const reqRaw = await vault.pendingRequest();
       const pendingRequest = {
-        agent: req?.[0] ?? ethers.ZeroAddress,
-        amount: req?.[1] ?? 0n,
-        zeroForOne: req?.[2] ?? false,
-        approved: req?.[3] ?? false,
-        executed: req?.[4] ?? false,
+        agent: reqRaw?.[0] ?? ethers.ZeroAddress,
+        amount: reqRaw?.[1] ?? 0n,
+        zeroForOne: reqRaw?.[2] ?? false,
+        approved: reqRaw?.[3] ?? false,
+        executed: reqRaw?.[4] ?? false,
       };
 
       setAgentData({
@@ -74,7 +75,16 @@ export function useAgentData(vault, deployment, agentAddress, userAddress, pollI
       setError(null);
     } catch (err) {
       console.error('Failed to fetch agent data:', err);
-      setError(err.message);
+      const msg = err?.message || String(err);
+      // Provide actionable error message for common contract issues
+      if (msg.includes('BAD_DATA') || msg.includes('CALL_EXCEPTION') || msg.includes('could not decode')) {
+        setError(
+          `Contract call failed: ${msg.substring(0, 150)}. ` +
+          `Check that VAULT_ADDRESS in constants.js matches your Hardhat deployment.`
+        );
+      } else {
+        setError(msg);
+      }
       setLoading(false);
     }
   }, [vault, agentAddress, userAddress]);

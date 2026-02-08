@@ -1,8 +1,8 @@
 {
-  "status": "running",
-  "last_update": "2026-02-05T18:50:28.782457Z",
-  "loop_count": 879,
-  "total_trades": 785,
+  "status": "AWAITING_APPROVAL",
+  "last_update": "2026-02-06 15:37:43",
+  "loop_count": 1,
+  "total_trades": 0,
   "agent": {
     "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "ensName": "agent.safe.eth",
@@ -11,7 +11,7 @@
     "cap": "100"
   },
   "decision": {
-    "action": "SWAP",
+    "action": "REQUEST_PENDING",
     "reason": "sniper:snipe_at_0.9990"
   },
   "snapshot": {
@@ -19,6 +19,12 @@
     "agent_spent": "50000000000000000000",
     "vault_balance": "950000000000000000000"
   },
+  "pnl_history": [
+    {
+      "time": "23:37:43",
+      "balance": 950.0
+    }
+  ],
   "intent": {
     "action": "SWAP",
     "reason": "sniper:snipe_at_0.9990",
@@ -40,16 +46,11 @@
       },
       "side": "BUY",
       "price": 0.999
-    }
-  },
-  "last_trade": {
-    "tx_hash": null,
-    "block_number": null,
-    "gas_used": null,
-    "timestamp": "2026-02-05T18:50:28.782457Z",
-    "event": {
-      "amountIn": "100000000000000000000",
-      "amountOut": "99500000000000000000"
-    }
+    },
+    "amount": "100.00",
+    "token": "USDC",
+    "strategy": "sniper",
+    "target": "Uniswap V4 Pool",
+    "slippage": "0.50%"
   }
 }

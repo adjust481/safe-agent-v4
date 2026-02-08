@@ -863,6 +863,75 @@
   margin: 16px 0;
 }
 
+/* Agent Online Indicator */
+.agent-online-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  margin: 0;
+  border-bottom: 2px solid rgba(0, 255, 153, 0.2);
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.agent-online-indicator.online {
+  background: rgba(0, 255, 153, 0.08);
+}
+
+.agent-online-indicator.unreachable {
+  background: rgba(102, 102, 102, 0.08);
+}
+
+.online-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.online-dot.green {
+  background: #00ff99;
+  box-shadow: 0 0 12px rgba(0, 255, 153, 0.8), 0 0 24px rgba(0, 255, 153, 0.4);
+  animation: online-pulse 2s ease-in-out infinite;
+}
+
+.online-dot.grey {
+  background: #666;
+  box-shadow: none;
+}
+
+@keyframes online-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(0, 255, 153, 0.8), 0 0 24px rgba(0, 255, 153, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 153, 1), 0 0 40px rgba(0, 255, 153, 0.6);
+  }
+}
+
+.online-label {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.agent-online-indicator.online .online-label {
+  color: #00ff99;
+  text-shadow: 0 0 10px rgba(0, 255, 153, 0.8);
+}
+
+.agent-online-indicator.unreachable .online-label {
+  color: #666;
+}
+
+.online-status {
+  font-size: 11px;
+  color: #888;
+  margin-left: 4px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .detail-header {

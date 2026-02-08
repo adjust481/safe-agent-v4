@@ -1,10 +1,16 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { format } from 'date-fns';
 import './AgentPnLChart.css';
 
+/**
+ * AgentPnLChart
+ *
+ * Accepts pnlHistory in the normalized format:
+ *   [{ timestamp: "HH:MM:SS" | ISO string, pnl: number }, ...]
+ *
+ * The parent (AgentDetailView) is responsible for converting the raw
+ * state.json format ({ time, balance }) into this shape.
+ */
 function AgentPnLChart({ pnlHistory, agent }) {
-  // pnlHistory 格式：[{ timestamp: "...", pnl: 0.0 }, ...]
-
   if (!pnlHistory || pnlHistory.length === 0) {
     return (
       <div className="pnl-chart-empty">
@@ -24,10 +30,10 @@ function AgentPnLChart({ pnlHistory, agent }) {
       return (
         <div className="custom-tooltip">
           <div className="tooltip-time">
-            {format(new Date(data.timestamp), 'MMM dd, HH:mm:ss')}
+            {data.timestamp}
           </div>
           <div className="tooltip-value" style={{ color: chartColor }}>
-            PnL: {data.pnl >= 0 ? '+' : ''}{data.pnl.toFixed(4)}
+            Balance: {data.pnl >= 0 ? '+' : ''}{data.pnl.toFixed(4)}
           </div>
         </div>
       );
@@ -38,10 +44,10 @@ function AgentPnLChart({ pnlHistory, agent }) {
   return (
     <div className="pnl-chart-container">
       <div className="chart-header">
-        <h3>Cumulative PnL</h3>
+        <h3>Vault Balance History</h3>
         <div className="chart-stats">
           <div className="stat">
-            <span className="stat-label">Total:</span>
+            <span className="stat-label">Current:</span>
             <span className="stat-value" style={{ color: lastPnl >= 0 ? '#10b981' : '#ef4444' }}>
               {lastPnl >= 0 ? '+' : ''}
               {lastPnl.toFixed(4)}
@@ -61,7 +67,6 @@ function AgentPnLChart({ pnlHistory, agent }) {
           <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
           <XAxis
             dataKey="timestamp"
-            tickFormatter={(ts) => format(new Date(ts), 'HH:mm:ss')}
             stroke="#6b7280"
             style={{ fontSize: 12 }}
           />

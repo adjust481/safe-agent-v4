@@ -2,36 +2,45 @@ import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import './AgentHeartbeat.css';
 
-function AgentHeartbeat({ runtime, offline }) {
+/**
+ * AgentHeartbeat
+ *
+ * Props:
+ *   state  — the full state.json object (has last_update, loop_count, status, etc.)
+ *
+ * "Online" = state is non-null (we successfully fetched state.json).
+ * No offline prop, no timestamp-based offline detection.
+ */
+function AgentHeartbeat({ state }) {
   const [timeSinceUpdate, setTimeSinceUpdate] = useState('');
   const [status, setStatus] = useState('unknown');
 
   useEffect(() => {
     const updateStatus = () => {
-      if (offline || !runtime?.lastHeartbeat) {
-        setStatus('offline');
-        setTimeSinceUpdate('Never');
-        return;
-      }
-
-      const lastHeartbeat = new Date(runtime.lastHeartbeat);
-      const now = new Date();
-      const secondsSince = (now - lastHeartbeat) / 1000;
-
-      if (secondsSince <= 60) {
+      // If state.json was fetched successfully, treat as online — no other checks
+      if (state) {
         setStatus('online');
       } else {
         setStatus('offline');
       }
 
-      setTimeSinceUpdate(formatDistanceToNow(lastHeartbeat, { addSuffix: true }));
+      // Parse last_update from state.json
+      const lastUpdate = state?.last_update ? new Date(state.last_update) : null;
+
+      if (lastUpdate && !isNaN(lastUpdate.getTime())) {
+        setTimeSinceUpdate(formatDistanceToNow(lastUpdate, { addSuffix: true }));
+      } else if (state) {
+        setTimeSinceUpdate('just now');
+      } else {
+        setTimeSinceUpdate('Never');
+      }
     };
 
     updateStatus();
     const interval = setInterval(updateStatus, 1000);
 
     return () => clearInterval(interval);
-  }, [runtime, offline]);
+  }, [state]);
 
   const statusConfig = {
     online: { color: '#00ff99', label: 'Online', icon: '🟢' },
@@ -65,15 +74,19 @@ function AgentHeartbeat({ runtime, offline }) {
         </div>
       </div>
 
-      {runtime && (
+      {state && (
         <div className="heartbeat-details">
           <div className="detail-row">
             <span className="detail-label">Iteration:</span>
-            <span className="detail-value">{runtime.iteration || 0}</span>
+            <span className="detail-value">{state.loop_count || 0}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">Mode:</span>
-            <span className="detail-value">{runtime.mode || 'N/A'}</span>
+            <span className="detail-label">Status:</span>
+            <span className="detail-value">{state.status || 'N/A'}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Trades:</span>
+            <span className="detail-value">{state.total_trades || 0}</span>
           </div>
         </div>
       )}

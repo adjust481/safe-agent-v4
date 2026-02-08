@@ -1,76 +1,84 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+/**
+ * Shared base URL for the Python agent HTTP server.
+ * All fetches to the Flask/http.server backend use this.
+ */
+export const AGENT_API_BASE = 'http://localhost:8888';
 
 /**
  * useAgentRuntime Hook
  *
- * Fetches agent runtime state from state.json
- * Returns: { data, offline, error }
+ * Polls state.json from the Python agent server.
  *
- * Offline判定规则：
- * 1. fetch 失败 → offline = true
- * 2. now - runtime.lastHeartbeat > 60秒 → offline = true
+ * Returns:
+ *   data           — the raw state.json object (null until first successful fetch)
+ *   connected      — true after at least one successful fetch
+ *   fetchError     — string error message when fetch fails (null when OK)
+ *   needsApproval  — true when the agent is requesting user authorization
+ *
+ * Approval trigger rules (broadened):
+ *   1. decision.action === 'REQUEST_PENDING'
+ *   2. status contains 'APPROVAL' (e.g. 'AWAITING_APPROVAL')
+ *   3. intent exists AND intent.action === 'SWAP'
+ *   Any of the above → needsApproval = true
+ *
+ * There is NO offline gating. If data was fetched at least once, connected=true.
+ * The approval modal is NEVER blocked by connection status.
  */
 export function useAgentRuntime(pollInterval = 3000) {
   const [data, setData] = useState(null);
-  const [offline, setOffline] = useState(true);
-  const [error, setError] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
+  const [needsApproval, setNeedsApproval] = useState(false);
+  const failCount = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchState = async () => {
       try {
-        const response = await fetch('http://localhost:8888/agent_py/state.json', {
-          cache: 'no-store'
+        const response = await fetch(`${AGENT_API_BASE}/agent_py/state.json`, {
+          cache: 'no-store',
         });
 
         if (!response.ok) {
-          // Read response as text to avoid JSON parse errors on HTML error pages
-          const text = await response.text();
-          throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
-        }
-
-        // Verify content-type is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          throw new Error(`Expected JSON but got ${contentType}: ${text.substring(0, 100)}`);
+          throw new Error(`HTTP ${response.status}`);
         }
 
         const state = await response.json();
-
         if (cancelled) return;
 
-        if (cancelled) return;
-
-        // Check heartbeat time (use last_update instead of runtime.lastHeartbeat)
-        const now = new Date();
-        const lastUpdate = state.last_update
-          ? new Date(state.last_update)
-          : null;
-
-        if (!lastUpdate) {
-          setOffline(true);
-        } else {
-          const secondsSinceUpdate = (now - lastUpdate) / 1000;
-          setOffline(secondsSinceUpdate > 60);
-        }
-
+        // Successfully fetched — mark connected, clear errors
         setData(state);
-        setError(null);
+        setConnected(true);
+        setFetchError(null);
+        failCount.current = 0;
+
+        // --- Approval detection (broadened) ---
+        const actionIsPending = state.decision?.action === 'REQUEST_PENDING';
+        const statusHasApproval =
+          typeof state.status === 'string' &&
+          state.status.toUpperCase().includes('APPROVAL');
+        const intentIsSwap =
+          state.intent != null && state.intent.action === 'SWAP';
+
+        setNeedsApproval(actionIsPending || statusHasApproval || intentIsSwap);
       } catch (err) {
-        console.error('Failed to fetch agent state:', err);
-        if (!cancelled) {
-          setOffline(true);
-          setError(err.message);
+        if (cancelled) return;
+        failCount.current += 1;
+        // Only show error after 2 consecutive failures (avoids flicker)
+        if (failCount.current >= 2) {
+          setFetchError(
+            `Cannot reach agent server at ${AGENT_API_BASE}. ` +
+            `Make sure "python3 server.py" is running on port 8888.`
+          );
         }
+        // Do NOT clear data or connected — stale data is better than no data
       }
     };
 
-    // 立即执行一次
     fetchState();
-
-    // 定期轮询
     const interval = setInterval(fetchState, pollInterval);
 
     return () => {
@@ -79,5 +87,5 @@ export function useAgentRuntime(pollInterval = 3000) {
     };
   }, [pollInterval]);
 
-  return { data, offline, error };
+  return { data, connected, fetchError, needsApproval };
 }
